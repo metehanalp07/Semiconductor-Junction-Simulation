@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semiconductor Junction Simulation — Phase 3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Grotesk:wght@300;500;700&display=swap');
+:root{--bg:#0a0e1a;--electron:#00d4ff;--electron-inj:#7dd3fc;--hole:#ff4d6d;--hole-inj:#fda4af;--text:#e2e8f0;--accent:#38bdf8;--panel:#0f172a;--border:#1e3a5f;--amber:#fbbf24;--green:#22c55e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:6px}
+h1{font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;color:var(--accent);margin-bottom:1px;text-align:center}
+.sub{font-size:.6rem;color:#64748b;margin-bottom:6px;text-align:center;letter-spacing:.1em;text-transform:uppercase}
+.sim{width:100%;max-width:1400px}
+.tabs{display:flex;gap:2px;justify-content:center;margin-bottom:6px}
+.tabs button{padding:6px 22px;border:1px solid var(--border);background:0 0;color:#94a3b8;font-family:'Space Grotesk',sans-serif;font-size:.78rem;font-weight:500;border-radius:6px 6px 0 0;cursor:pointer;transition:all .2s}
+.tabs button.on{background:#1d4ed8;border-color:#60a5fa;color:#fff;font-weight:700}
+.wrap{display:flex;gap:6px;align-items:flex-start;width:100%}
+.side{display:flex;flex-direction:column;gap:4px;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:8px;min-width:120px;font-size:.6rem}
+.side .st{color:#64748b;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:1px;font-size:.55rem}
+.side label{color:#94a3b8;display:block;margin-bottom:0}
+.side input[type=range]{width:100%}
+.side .v{color:var(--accent);text-align:center;font-size:.65rem}
+.carea{flex:1;min-width:0}
+canvas{width:100%;border:1px solid var(--border);border-radius:8px;background:#0d1117;display:block}
+.ctrl{padding:5px 12px;border:1px solid #2563eb;background:0 0;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.62rem;border-radius:4px;cursor:pointer;transition:all .2s}
+.ctrl:hover{background:#1e3a5f}
+.ctrl.on{background:#1d4ed8;border-color:#60a5fa;color:#fff}
+.brow{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;justify-content:center;align-items:center}
+.brow button{padding:7px 18px;border:1px solid var(--border);background:0 0;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:.66rem;border-radius:4px;cursor:pointer;transition:all .2s}
+.brow button.on{background:#92400e;border-color:var(--amber);color:var(--amber)}
+.varow{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:4px;padding:4px 12px;background:var(--panel);border:1px solid var(--border);border-radius:5px}
+.varow label{font-size:.65rem;color:#94a3b8}
+.varow .vv{font-size:.8rem;color:var(--amber);font-weight:700;min-width:55px;text-align:center}
+.leg{display:flex;gap:10px;margin-top:5px;justify-content:center;flex-wrap:wrap}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:.56rem;color:#94a3b8}
+.dot{width:9px;height:9px;border-radius:50%}
+.pp{margin-top:5px;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:6px 12px}
+.pp .pt{text-align:center;font-size:.58rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.pg{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.pi{text-align:center}
+.pi .pl{font-size:.5rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px}
+.pi .pv{font-size:.72rem;font-family:'JetBrains Mono',monospace}
+.ip{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:5px}
+.ic{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:6px 8px}
+.ic h3{font-size:.55rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.ic p{font-size:.58rem;line-height:1.35;color:#cbd5e1}
+.graphs-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.graph-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:4px;display:flex;justify-content:center;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.graph-box:hover{border-color:#38bdf8;box-shadow:0 0 12px rgba(56,189,248,.15)}
+.graph-box canvas{width:100%;border-radius:4px;display:block;pointer-events:none}
+/* Expanded graph overlay — replaces the canvas area */
+#graphOverlay{display:none;position:relative;flex:1;min-width:0}
+#graphOverlay.open{display:block}
+#graphOverlay canvas{width:100%;border:1px solid #38bdf8;border-radius:8px;background:#0d1117;display:block;box-shadow:0 0 20px rgba(56,189,248,.15)}
+#graphClose{position:absolute;top:8px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid #475569;background:rgba(15,23,42,.85);color:#94a3b8;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .2s;line-height:1}
+#graphClose:hover{background:#1e3a5f;color:#fff;border-color:#60a5fa}
+.carea.hidden{display:none}
+</style>
+</head>
+<body>
+<h1>Semiconductor Junction Simulation</h1>
+<p class="sub">PN Junction · BJT Transistor — Phase 3</p>
+<div class="sim">
+<div class="tabs">
+<button id="tabPN" class="on" onclick="setMode('pn')">PN Junction</button>
+<button id="tabPNP" onclick="setMode('pnp')">PNP Transistor</button>
+<button id="tabNPN" onclick="setMode('npn')">NPN Transistor</button>
+</div>
+<div class="wrap">
+<div class="side">
+<div class="st">Doping</div>
+<label>Nₐ</label>
+<input type="range" id="slNa" min="15" max="18" step="0.5" value="17" oninput="updDoping()">
+<div class="v" id="vNa">10¹⁷ cm⁻³</div>
+<label>Nᴅ</label>
+<input type="range" id="slNd" min="15" max="18" step="0.5" value="17" oninput="updDoping()">
+<div class="v" id="vNd">10¹⁷ cm⁻³</div>
+<div id="wbBox" style="margin-top:4px;border-top:1px solid #1e3a5f;padding-top:4px;display:none">
+<div class="st">Base Width W_B</div>
+<input type="range" id="slWb" min="1" max="50" step="1" value="5" oninput="updWb()">
+<div class="v" id="vWb">0.5 μm</div>
+</div>
+<div style="margin-top:4px;border-top:1px solid #1e3a5f;padding-top:4px">
+<div class="st">Speed</div>
+<input type="range" id="slSpd" min="0" max="6" step="1" value="3" oninput="updSpd()">
+<div class="v" id="vSpd">2x</div>
+</div>
+<div style="margin-top:4px;border-top:1px solid #1e3a5f;padding-top:4px">
+<button class="ctrl on" id="btnPlay" onclick="togPlay()" style="width:100%;margin-bottom:2px">⏸ Pause</button>
+<button class="ctrl" id="btnTemp" onclick="togTemp()" style="width:100%;margin-bottom:2px">🌡️ 300K</button>
+<button class="ctrl" onclick="resetSim()" style="width:100%">↺ Reset</button>
+</div>
+</div>
+<div class="carea" id="careaMain"><canvas id="cv" width="1400" height="610"></canvas></div>
+<div id="graphOverlay"><button id="graphClose" onclick="closeGraph()">×</button><canvas id="gBig" width="1400" height="610"></canvas></div>
+</div>
+<div class="brow" id="pnBiasRow">
+<button id="bEq" class="on" onclick="setBias('eq')">⚖ Equilibrium</button>
+<button id="bFwd" onclick="setBias('fwd')">→ Forward Bias</button>
+<button id="bRev" onclick="setBias('rev')">← Reverse Bias</button>
+</div>
+<div class="brow" id="bjtModeRow" style="display:none">
+<button id="mFwdAct" class="on" onclick="setBJTMode('fwd_active')">▶ Forward Active</button>
+<button id="mSat" onclick="setBJTMode('saturation')">⊞ Saturation</button>
+<button id="mCut" onclick="setBJTMode('cutoff')">⊘ Cutoff</button>
+<button id="mRevAct" onclick="setBJTMode('rev_active')">◀ Reverse Active</button>
+</div>
+<div class="varow" id="pnVaRow">
+<label>Vₐ :</label>
+<input type="range" id="slVa" min="-100" max="10" step="1" value="0" oninput="updVa()">
+<div class="vv" id="vVa">0.0 V</div>
+</div>
+<div id="bjtVaRow" style="display:none;margin-top:4px">
+<div class="varow">
+<label style="color:#34d399">V_BE :</label>
+<input type="range" id="slVbe" min="-50" max="10" step="1" value="6" oninput="updBjtV()">
+<div class="vv" id="vVbe" style="color:#34d399">+0.6 V</div>
+</div>
+<div class="varow" style="margin-top:2px">
+<label style="color:#60a5fa">V_CB :</label>
+<input type="range" id="slVcb" min="-200" max="10" step="1" value="-50" oninput="updBjtV()">
+<div class="vv" id="vVcb" style="color:#60a5fa">-5.0 V</div>
+</div>
+</div>
+<div class="leg">
+<div class="leg-i"><div class="dot" style="background:#00d4ff;box-shadow:0 0 4px #00d4ff"></div>e⁻ majority</div>
+<div class="leg-i"><div class="dot" style="background:#7dd3fc"></div>e⁻ injected (minority)</div>
+<div class="leg-i"><div class="dot" style="background:transparent;border:1.5px dashed #ff4d6d"></div>h⁺ majority</div>
+<div class="leg-i"><div class="dot" style="background:transparent;border:1.5px dashed #fda4af"></div>h⁺ injected (minority)</div>
+<div class="leg-i"><div class="dot" style="background:rgba(251,191,36,.3);border:1px solid #fbbf24"></div>Depletion</div>
+<div class="leg-i"><div class="dot" style="background:#3b82f6"></div>(−) acceptor ion</div>
+<div class="leg-i"><div class="dot" style="background:#ef4444"></div>(+) donor ion</div>
+</div>
+<div class="pp">
+<div class="pt">Real-Time Parameters — <span id="dTemp" style="color:#fbbf24">T = 300 K</span></div>
+<div class="pg">
+<div class="pi"><div class="pl">V₀ (built-in)</div><div class="pv" id="pV0" style="color:#fbbf24">—</div></div>
+<div class="pi"><div class="pl">Vₐ (applied)</div><div class="pv" id="pVa" style="color:#38bdf8">—</div></div>
+<div class="pi"><div class="pl">Barrier qφ</div><div class="pv" id="pBar" style="color:#fb923c">—</div></div>
+<div class="pi"><div class="pl">W_d</div><div class="pv" id="pWd" style="color:#a78bfa">—</div></div>
+<div class="pi"><div class="pl">E_max</div><div class="pv" id="pEmax" style="color:#fbbf24">—</div></div>
+<div class="pi"><div class="pl">J (current)</div><div class="pv" id="pJ" style="color:#34d399">—</div></div>
+<div class="pi"><div class="pl">nᵢ</div><div class="pv" id="pNi" style="color:#c084fc">—</div></div>
+<div class="pi"><div class="pl">V_BR</div><div class="pv" id="pVbr" style="color:#94a3b8">—</div></div>
+<div class="pi"><div class="pl">C_j (depl)</div><div class="pv" id="pCj" style="color:#38bdf8">—</div></div>
+<div class="pi"><div class="pl">μₙ / μₚ</div><div class="pv" id="pMu" style="color:#00d4ff">—</div></div>
+<div class="pi"><div class="pl">Dₙ / Dₚ</div><div class="pv" id="pDn" style="color:#34d399">—</div></div>
+<div class="pi" id="boxBeta" style="display:none"><div class="pl">β (gain)</div><div class="pv" id="pBeta" style="color:#fbbf24">—</div></div>
+<div class="pi" id="boxAlpha" style="display:none"><div class="pl">γ / α_T</div><div class="pv" id="pAlpha" style="color:#22c55e">—</div></div>
+<div class="pi" id="boxReg" style="display:none"><div class="pl">Mode</div><div class="pv" id="pReg" style="color:#34d399">—</div></div>
+<div class="pi" id="boxWb" style="display:none"><div class="pl">W_B</div><div class="pv" id="pWb" style="color:#a78bfa">—</div></div>
+<div class="pi" id="boxIe" style="display:none"><div class="pl">I_E</div><div class="pv" id="pIe" style="color:#fb923c">—</div></div>
+<div class="pi" id="boxIb" style="display:none"><div class="pl">I_B</div><div class="pv" id="pIb" style="color:#fbbf24">—</div></div>
+<div class="pi" id="boxIc" style="display:none"><div class="pl">I_C</div><div class="pv" id="pIc" style="color:#34d399">—</div></div>
+</div>
+</div>
+<div class="ip" id="cards">
+<div class="ic"><h3>① Depletion</h3><p>Diffusion of majority carriers exposes <span style="color:#3b82f6">(−) acceptor</span> & <span style="color:#ef4444">(+) donor</span> ions. Charge neutrality: Nₐx_p=Nᴅx_n. E_bi from N→P opposes diffusion. W_d=√(2ε(Nₐ+Nᴅ)(V₀−Vₐ)/(qNₐNᴅ)). Asymmetric: wider into lighter-doped side.</p></div>
+<div class="ic"><h3>② Forward Bias</h3><p>Vₐ>0 opposes E_bi → barrier↓, W_d↓. Minority injection: <span style="color:#7dd3fc">e⁻→P</span>, <span style="color:#fda4af">h⁺→N</span>. J=J₀(e^(qV/kT)−1). Injected carriers decay exponentially with diffusion length L=√(Dτ). Recombination produces ✦.</p></div>
+<div class="ic"><h3>③ Reverse Bias</h3><p>Vₐ<0 aids E_bi → barrier↑, W_d↑. Only J₀ leakage (thermally generated minority carriers swept by E). E_max=2(V₀−Vₐ)/W_d increases. C_j=εA/W_d decreases (varactor effect).</p></div>
+<div class="ic"><h3>④ Breakdown</h3><p><span style="color:#ef4444">Avalanche</span> (N<5×10¹⁷): KE carriers impact-ionize Si → cascade. M=1/(1−(V/V_BR)ⁿ). V_BR↑ with T (more phonon scattering). <span style="color:#a855f7">Zener</span> (N>5×10¹⁷): quantum tunneling through narrow W_d. V_BR↓ with T (Eg narrows).</p></div>
+<div class="ic" id="c5pn"><h3>⑤ Band Diagram</h3><p>Ec,Ev bend creating barrier qV₀. Forward: bands flatten → injection. Reverse: steeper bending. E_F=constant at eq; splits into E_Fn, E_Fp under bias (quasi-Fermi levels). Eg=1.12eV for Si.</p></div>
+<div class="ic" id="c5bjt" style="display:none"><h3>⑤ BJT Mode</h3><p id="bjtModeDesc">γ=emitter injection eff. ≈1/(1+DₚNB/(DₙNE)). α_T=base transport ≈1−W_B²/(2L²). β=γα_T/(1−γα_T). Thin base W_B≪Lₙ → most injected carriers reach collector. I_C=βI_B.</p></div>
+</div>
+<!-- ═══ GRAPH PANELS ═══ -->
+<div class="graphs-row">
+<div class="graph-box" onclick="openGraph('iv')"><canvas id="gIV" width="340" height="220"></canvas></div>
+<div class="graph-box" onclick="openGraph('band')"><canvas id="gBand" width="340" height="220"></canvas></div>
+<div class="graph-box" onclick="openGraph('rho')"><canvas id="gRho" width="340" height="220"></canvas></div>
+<div class="graph-box" onclick="openGraph('efield')"><canvas id="gEfield" width="340" height="220"></canvas></div>
+</div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  Phase 3 — PN Junction + BJT — University-Level Simulation
+//  All physics formulas from standard Si device physics texts
+// ═══════════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),X=cv.getContext('2d'),W=cv.width,H=cv.height;
+
+// ── State ────────────────────────────────────────────────────
+let mode='pn',bias='eq',playing=true,hiT=false,spd=2,fc=0,anim;
+let Na=1e17,Nd=1e17,Va=0;
+let bjtMode='fwd_active'; // fwd_active, saturation, cutoff, rev_active
+let WB=0.5e-4; // base width in cm (0.5 μm default)
+let VBE=0.6, VCB=-5; // BJT junction voltages (driven by sliders)
+
+// ── Silicon Constants ────────────────────────────────────────
+const qe=1.6e-19, kB=8.617e-5; // kB in eV/K
+const eps0=8.854e-14; // F/cm (CGS for semiconductor formulas!)
+const epsSi=11.7;
+
+// ── Physics ──────────────────────────────────────────────────
+function Temp(){return hiT?450:300}
+function VT(){return kB*Temp()} // kT/q in Volts
+function Eg(){return Temp()<400?1.12:1.10}
+
+// Intrinsic carrier concentration
+// ni(300K) = 1.5×10¹⁰ cm⁻³ (Si, well-established experimental value)
+// Temperature scaling: ni(T) = ni(300)*(T/300)^1.5 * exp(-Eg/2k * (1/T - 1/300))
+function ni(){
+  const t=Temp(),eg=Eg();
+  return 1.5e10*Math.pow(t/300,1.5)*Math.exp((-eg/(2*kB))*(1/t-1/300));
+}
+
+// Mobility: Arora model for Si with temperature dependence
+// μ = μ_min + (μ_max-μ_min)/(1+(N/Nref)^α)
+// Temperature scaling on μ_max (lattice T^-2.3), μ_min (T^-0.57), Nref (T^2.4)
+function getMobilityFor(N){
+  const t=Temp(),Tf=300/t;
+  const mn_max=1252*Math.pow(Tf,2.3), mn_min=88*Math.pow(Tf,0.57);
+  const Nrn=1.26e17*Math.pow(t/300,2.4);
+  const mp_max=407*Math.pow(Tf,2.3), mp_min=54.3*Math.pow(Tf,0.57);
+  const Nrp=2.35e17*Math.pow(t/300,2.4);
+  return{
+    mun: mn_min+(mn_max-mn_min)/(1+Math.pow(N/Nrn,0.88)),
+    mup: mp_min+(mp_max-mp_min)/(1+Math.pow(N/Nrp,0.88))
+  };
+}
+function getMobility(){return getMobilityFor(Na+Nd)}
+
+// Diffusion coefficients: D = μ*kT/q (Einstein relation)
+function getDiff(){
+  const m=getMobility(), vt=VT();
+  return{Dn:m.mun*vt, Dp:m.mup*vt};
+}
+
+// Built-in voltage: V0 = (kT/q)*ln(Na*Nd/ni²)
+function V0(){
+  const n=ni();
+  if(n<1)return 0;
+  return VT()*Math.log(Na*Nd/(n*n));
+}
+
+// Depletion width for abrupt junction
+// W_d = sqrt(2*εs*ε0*(Na+Nd)/(q*Na*Nd) * (V0-Va))
+function Wd(va){
+  const Vbi=V0()-va;
+  if(Vbi<=0)return 1e-8;
+  return Math.sqrt(2*epsSi*eps0*(Na+Nd)/(qe*Na*Nd)*Vbi);
+}
+// Depletion into P-side: xp = Wd * Nd/(Na+Nd)
+function getXp(va){return Wd(va)*Nd/(Na+Nd)}
+// Depletion into N-side: xn = Wd * Na/(Na+Nd)
+function getXn(va){return Wd(va)*Na/(Na+Nd)}
+
+// Maximum E-field at metallurgical junction (triangular approximation)
+// E_max = 2*(V0-Va)/Wd = qNa*xp/(εs*ε0) = qNd*xn/(εs*ε0)
+function Emax(va){
+  const Vbi=V0()-va;
+  if(Vbi<=0)return 0;
+  return 2*Vbi/Wd(va);
+}
+
+// Junction (depletion) capacitance per unit area: Cj = εs*ε0/Wd
+function Cj(va){
+  const w=Wd(va);
+  return w>1e-10? epsSi*eps0/w : 0;
+}
+
+// ── Breakdown ────────────────────────────────────────────────
+// Empirical Si: VBR ≈ 60*(Eg/1.1)^1.5 * (N_light/10^16)^-0.75
+function Vbr(){
+  const Nl=Math.min(Na,Nd),t=Temp(),eg=Eg();
+  let v=60*Math.pow(eg/1.1,1.5)*Math.pow(Nl/1e16,-0.75);
+  // Temperature coefficient:
+  // Avalanche: VBR increases ~+0.1%/K (more phonon scattering → harder to ionize)
+  // Zener: VBR decreases ~-0.05%/K (Eg narrows → easier tunneling)
+  if(breakType()==='Avalanche') v*=(1+0.001*(t-300));
+  else v*=(1-0.0005*(t-300));
+  return Math.max(3,v);
+}
+function isBreak(){return Va<-Vbr()}
+function breakType(){return Math.min(Na,Nd)>5e17?'Zener':'Avalanche'}
+
+// ── Shockley Diode Equation ──────────────────────────────────
+// J0 = q*ni²*(Dn/(Ln*Na) + Dp/(Lp*Nd))
+// J = J0*(exp(V/VT) - 1)
+function J0val(){
+  const n=ni(),d=getDiff();
+  const tau=1e-6; // carrier lifetime
+  const Ln=Math.sqrt(d.Dn*tau), Lp=Math.sqrt(d.Dp*tau);
+  return qe*n*n*(d.Dn/(Ln*Na)+d.Dp/(Lp*Nd));
+}
+function getJ(va){
+  const j0=J0val(),vt=VT();
+  let j=j0*(Math.exp(Math.min(va/vt,40))-1); // clamp exp to avoid Infinity
+  // Avalanche multiplication
+  if(va<0){
+    const vbr=Vbr(),ratio=Math.abs(va)/vbr;
+    if(ratio>0.3){
+      const n=breakType()==='Avalanche'?4:6;
+      const M=1/Math.max(1e-6,1-Math.pow(Math.min(ratio,0.9999),n));
+      j*=M;
+    }
+  }
+  return j;
+}
+
+// ── BJT: Physics-accurate β and Ebers-Moll terminal currents ─
+function getBJTParams(){
+  const isN=mode==='npn';
+  // Doping: NPN → E=N(Nd), B=P(Na), C=N(Nd)  |  PNP → E=P(Na), B=N(Nd), C=P(Na)
+  const NE=isN?Nd:Na, NB=isN?Na:Nd, NC=isN?Nd:Na;
+  const vt=VT(), n=ni(), tau=1e-6;
+
+  // FIX 1: Region-specific mobilities
+  const mobB=getMobilityFor(NB);  // base region
+  const mobE=getMobilityFor(NE);  // emitter region
+  const mobC=getMobilityFor(NC);  // collector region
+
+  // FIX 2: Correct minority carrier diffusion coefficients per region
+  // NPN: minority in base = electrons → Dn_base; minority in emitter = holes → Dp_emitter
+  // PNP: minority in base = holes → Dp_base; minority in emitter = electrons → Dn_emitter
+  const D_minB = isN ? mobB.mun*vt : mobB.mup*vt;  // minority D in base
+  const D_minE = isN ? mobE.mup*vt : mobE.mun*vt;  // minority D in emitter
+  const D_minC = isN ? mobC.mup*vt : mobC.mun*vt;  // minority D in collector
+
+  // Diffusion lengths
+  const LnB=Math.sqrt(D_minB*tau);  // minority diffusion length in base
+  const LpE=Math.sqrt(D_minE*tau);  // minority diffusion length in emitter
+  const LpC=Math.sqrt(D_minC*tau);  // minority diffusion length in collector
+
+  // FIX 3: Base transport factor — exact cosh formula
+  const wl=WB/LnB;
+  const alphaT=1/Math.cosh(wl); // exact, works for all WB/LnB ratios
+
+  // FIX 4: Emitter injection efficiency γ
+  // γ = 1 / (1 + (D_minB/D_minE) * (NB/NE) * (WB/LnB) / tanh(WB/LnB))
+  const tanhWL=Math.tanh(wl);
+  const gamma = 1/(1 + (D_minB*NB)/(D_minE*NE) * (tanhWL>1e-10 ? wl/tanhWL : 1));
+
+  const alpha=gamma*alphaT;
+  const betaFwd=alpha/(1-Math.max(alpha,0.001));
+
+  // Reverse active: collector injects into base (swapped roles)
+  const D_minBr = D_minB; // same base
+  const D_minCr = D_minC; // collector as emitter
+  const gammaR = 1/(1 + (D_minBr*NB)/(D_minCr*NC) * (tanhWL>1e-10 ? wl/tanhWL : 1));
+  const alphaR = gammaR*alphaT;
+  const betaRev = alphaR/(1-Math.max(alphaR,0.001));
+
+  const beta = (bjtMode==='rev_active') ?
+    Math.max(1,Math.min(Math.round(betaRev),999)) :
+    Math.max(1,Math.min(Math.round(betaFwd),999));
+
+  // FIX 5: Ebers-Moll terminal currents (A/cm²)
+  const ni2=n*n;
+  const J0E = qe*ni2*D_minB/(LnB*NB);  // EB saturation current density
+  const J0C = qe*ni2*D_minC/(LpC*NC);   // CB saturation current density
+
+  const expVBE = Math.exp(Math.min(VBE/vt, 40))-1;
+  const expVCB = Math.exp(Math.min(VCB/vt, 40))-1;
+
+  // Ebers-Moll equations:
+  // IC = αF·J0E·(exp(VBE/VT)-1) - J0C·(exp(VCB/VT)-1)
+  // IE = J0E·(exp(VBE/VT)-1) - αR·J0C·(exp(VCB/VT)-1)
+  // IB = IE - IC
+  const JC = alpha*J0E*expVBE - J0C*expVCB;
+  const JE = J0E*expVBE - alphaR*J0C*expVCB;
+  const JB = JE - JC;
+
+  return{
+    gamma, alphaT, alpha, beta,
+    betaFwd: Math.max(1,Math.min(Math.round(betaFwd),999)),
+    betaRev: Math.max(1,Math.min(Math.round(betaRev),999)),
+    IE:JE, IB:JB, IC:JC,          // A/cm² (real physical values)
+    J0E, J0C,
+    WB_um: WB*1e4, LnB_um: LnB*1e4,
+    D_minB, D_minE
+  };
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+const SM={'−':'⁻','-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function sup(n){return String(n).split('').map(c=>SM[c]||c).join('')}
+function fmtS(v,u){
+  if(Math.abs(v)<1e-30)return '≈0 '+u;
+  const neg=v<0,av=Math.abs(v);
+  const e=Math.floor(Math.log10(av)),m=av/Math.pow(10,e);
+  return(neg?'−':'')+m.toFixed(2)+'×10'+sup(e)+' '+u;
+}
+
+// ── Layout ───────────────────────────────────────────────────
+const BT=65,BB=465,BH=BB-BT; // bar top/bottom/height on canvas
+let R={}; // region boundaries in px
+
+function calcR(){
+  if(mode==='pn'){
+    const wd0=Wd(0),wd=Wd(Va);
+    const base=W*0.10;
+    let dp=Math.max(W*0.02,Math.min(W*0.35,base*(wd/Math.max(wd0,1e-10))));
+    const ctr=W*0.50;
+    // Asymmetric depletion: extends more into lighter-doped side
+    const fP=Nd/(Na+Nd), fN=Na/(Na+Nd); // fraction into P and N
+    R={pL:0,pR:ctr-dp*fP,dL:ctr-dp*fP,dR:ctr+dp*fN,nL:ctr+dp*fN,nR:W,jx:ctr};
+  }else{
+    // BJT: Emitter | D1 | Base | D2 | Collector
+    // VBE and VCB come directly from sliders — user has fine-tune control
+    const wd0=Wd(0);
+    const ebVa=VBE;  // positive = forward biased EB junction
+    const cbVa=VCB;  // negative = reverse biased CB junction
+    const wEB=Wd(ebVa),wCB=Wd(cbVa);
+    const bf=0.035;
+    const d1=Math.max(W*.012,Math.min(W*.09,W*bf*(wEB/Math.max(wd0,1e-10))));
+    const d2=Math.max(W*.012,Math.min(W*.09,W*bf*(wCB/Math.max(wd0,1e-10))));
+    const rem=W-d1-d2;
+    const bwFrac=Math.max(0.08,Math.min(0.35,WB*1e4/5*0.20));
+    const eW=rem*(1-bwFrac)/2*0.75, bW=rem*bwFrac, cW=rem-eW-bW;
+    R={eL:0,eR:eW,d1L:eW,d1R:eW+d1,bL:eW+d1,bR:eW+d1+bW,
+       d2L:eW+d1+bW,d2R:eW+d1+bW+d2,cL:eW+d1+bW+d2,cR:W};
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PARTICLE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+let elec=[],hole=[],injE=[],injH=[],flashes=[];
+
+class Carrier{
+  constructor(x,y,tp,inj){
+    this.x=x;this.y=y;this.tp=tp;this.inj=!!inj;
+    this.vx=(Math.random()-.5)*.6;this.vy=(Math.random()-.5)*.25;
+    this.alive=true;this.age=0;this.trail=[];
+  }
+  update(){
+    this.age++;
+    const s=spd*.32;
+    // Brownian motion (thermal) — slower when both junctions reverse (cutoff-like)
+    const isCutoffLike=(mode!=='pn'&&VBE<0&&VCB<0&&!this.inj);
+    const thermalScale=isCutoffLike?0.3:1.0;
+    this.vx+=(Math.random()-.5)*.2*thermalScale;
+    this.vy+=(Math.random()-.5)*.15*thermalScale;
+
+    if(mode==='pn') this._pnPhysics();
+    else this._bjtPhysics();
+
+    this.vx=Math.max(-2.2,Math.min(2.2,this.vx));
+    this.vy=Math.max(-.9,Math.min(.9,this.vy));
+    this.x+=this.vx*s;this.y+=this.vy*s;
+    this.y=Math.max(BT+8,Math.min(BB-8,this.y));
+    this._confine();
+    this.trail.push({x:this.x,y:this.y});
+    if(this.trail.length>10)this.trail.shift();
+  }
+
+  _pnPhysics(){
+    const inD=this.x>R.dL&&this.x<R.dR;
+    if(inD){
+      // Built-in E points from N to P (leftward), i.e. in −x direction
+      // Force on electron: F = -qE → pushed in +x (toward N)
+      // Force on hole:     F = +qE → pushed in -x (toward P)
+      // Field strength proportional to (V0-Va)/Wd — weakens in forward, strengthens in reverse
+      const v0=V0(), bar=Math.max(0.01,v0-Va);
+      const barEq=Math.max(0.01,v0);
+      const eFld=.10*spd*(bar/barEq); // scales with actual barrier
+      if(this.tp==='e') this.vx+=eFld;    // electron pushed to N (right)
+      else               this.vx-=eFld;   // hole pushed to P (left)
+    }
+    if(this.inj){
+      if(this._isBreakdown){
+        // Breakdown carrier: swept by intense E-field, no early recombination
+        // Already has high initial velocity from generation
+        // Additional drift from the strong reverse-bias field
+        if(inD){
+          const eFldBk=.25*spd; // very strong field in breakdown
+          if(this.tp==='e') this.vx+=eFldBk;  // electron → N (right)
+          else               this.vx-=eFldBk; // hole → P (left)
+        }
+        // Die when reaching contacts (far from junction)
+        if(this.tp==='e'&&this.x>R.nR-5) this.alive=false;
+        if(this.tp==='h'&&this.x<R.pL+5) this.alive=false;
+        // Wrap around for continuous flow effect
+        if(this.x>W+20||this.x<-20) this.alive=false;
+      }else{
+        // Normal injected minority carrier: diffuse AWAY from junction edge
+        if(this.tp==='e'){
+          this.vx-=.012*spd; // electron in P, diffuses left
+        }else{
+          this.vx+=.012*spd; // hole in N, diffuses right
+        }
+        // Recombination after ~diffusion length (age-based proxy)
+        if(this.age>55+Math.random()*200){
+          this.alive=false;
+          flashes.push(new Flash(this.x,this.y));
+        }
+      }
+    }
+  }
+
+  _bjtPhysics(){
+    const isN=mode==='npn';
+    const inD1=this.x>R.d1L&&this.x<R.d1R;
+    const inD2=this.x>R.d2L&&this.x<R.d2R;
+
+    // EB field strength: scales with barrier. Forward VBE>0 weakens field, reverse strengthens.
+    // V0_eb ≈ 0.8V, effective barrier = V0-VBE
+    const v0=V0();
+    const ebBar=Math.max(0,v0-VBE)/Math.max(v0,0.01);
+    const cbBar=Math.max(0,v0-VCB)/Math.max(v0,0.01);
+
+    if(inD1){
+      const ebStr=Math.min(.25, .02+.10*ebBar)*spd; // weak when VBE≈V0, strong when VBE<<0
+      if(isN) this.vx+=(this.tp==='e'?-ebStr:ebStr);
+      else    this.vx+=(this.tp==='h'?-ebStr:ebStr);
+    }
+    if(inD2){
+      const cbStr=Math.min(.30, .02+.18*cbBar)*spd; // strong when VCB<<0 (reverse)
+      if(isN) this.vx+=(this.tp==='e'?cbStr:-cbStr);
+      else    this.vx+=(this.tp==='h'?cbStr:-cbStr);
+    }
+
+    if(this.inj){
+      // Base recombination probability scales with WB (wider base → more recombination → lower β)
+      const wbScale=WB/0.5e-4; // 1.0 at default 0.5μm
+      const recomAge=Math.round((500+Math.random()*1500)/Math.max(wbScale,0.2));
+
+      if(this._fromCollector){
+        // Carrier injected from collector side (saturation or reverse active)
+        this.vx-=.04*spd; // drift toward emitter (leftward)
+        if(this.x<R.eL+12) this.alive=false;
+        if(this.x>R.bL&&this.x<R.bR&&this.age>recomAge){
+          this.alive=false;flashes.push(new Flash(this.x,this.y));
+        }
+      }else{
+        // Normal: carrier from emitter → base → collector
+        if(bjtMode==='fwd_active'||bjtMode==='saturation'){
+          this.vx+=.06*spd; // drift through base toward collector
+          if(VCB<0&&this.x>R.d2L) this.vx+=.15*spd; // CB reverse → strong sweep to collector
+          if(VCB>=0&&this.x>R.d2L) this.vx+=.03*spd; // CB forward → weak, carrier slows
+          if(this.x>R.cR-12) this.alive=false; // absorbed at collector
+        }else if(bjtMode==='cutoff'){
+          // Very slow drift, mostly dies
+          this.vx+=(Math.random()-.5)*.02*spd;
+          if(this.age>30+Math.random()*60){this.alive=false;flashes.push(new Flash(this.x,this.y))}
+        }
+        // Base recombination
+        if(this.x>R.bL&&this.x<R.bR&&this.age>recomAge){
+          this.alive=false;flashes.push(new Flash(this.x,this.y));
+        }
+      }
+    }
+  }
+
+  _confine(){
+    if(!this.inj){
+      if(mode==='pn'){
+        if(this.tp==='e') this.x=Math.max(R.nL+3,Math.min(R.nR-3,this.x));
+        else               this.x=Math.max(R.pL+3,Math.min(R.pR-3,this.x));
+      }else{
+        const isN=mode==='npn';
+        if(isN){
+          if(this.tp==='e'){
+            if(this.x<(R.d1L+R.d1R)/2) this.x=Math.max(R.eL+3,Math.min(R.eR-3,this.x));
+            else if(this.x>(R.d2L+R.d2R)/2) this.x=Math.max(R.cL+3,Math.min(R.cR-3,this.x));
+          }else this.x=Math.max(R.bL+3,Math.min(R.bR-3,this.x));
+        }else{
+          if(this.tp==='h'){
+            if(this.x<(R.d1L+R.d1R)/2) this.x=Math.max(R.eL+3,Math.min(R.eR-3,this.x));
+            else if(this.x>(R.d2L+R.d2R)/2) this.x=Math.max(R.cL+3,Math.min(R.cR-3,this.x));
+          }else this.x=Math.max(R.bL+3,Math.min(R.bR-3,this.x));
+        }
+      }
+    }else{
+      if(this.x<-15||this.x>W+15) this.alive=false;
+    }
+  }
+
+  draw(){
+    const isE=this.tp==='e';
+    const mc=isE?(this.inj?'#7dd3fc':'#00d4ff'):(this.inj?'#fda4af':'#ff4d6d');
+    const gc=isE?(this.inj?'rgba(125,211,252,':'rgba(0,212,255,'):(this.inj?'rgba(253,164,175,':'rgba(255,77,109,');
+    for(let i=0;i<this.trail.length;i++){
+      X.beginPath();X.arc(this.trail[i].x,this.trail[i].y,1.2,0,Math.PI*2);
+      X.fillStyle=gc+(i/this.trail.length*.2)+')';X.fill();
+    }
+    const r=this.inj?3.2:4.2;
+    const g=X.createRadialGradient(this.x,this.y,0,this.x,this.y,r*2);
+    g.addColorStop(0,gc+'.6)');g.addColorStop(1,gc+'0)');
+    X.beginPath();X.arc(this.x,this.y,r*2,0,Math.PI*2);X.fillStyle=g;X.fill();
+    if(isE){
+      X.beginPath();X.arc(this.x,this.y,r,0,Math.PI*2);X.fillStyle=mc;X.fill();
+      X.font=`${this.inj?5:6}px JetBrains Mono`;X.fillStyle='#001a2e';
+      X.textAlign='center';X.textBaseline='middle';X.fillText('e⁻',this.x,this.y);
+    }else{
+      X.beginPath();X.arc(this.x,this.y,r,0,Math.PI*2);
+      X.strokeStyle=mc;X.lineWidth=1.2;X.setLineDash([2.5,1.8]);X.stroke();X.setLineDash([]);
+      X.font=`bold ${this.inj?5:6}px JetBrains Mono`;X.fillStyle=mc;
+      X.textAlign='center';X.textBaseline='middle';X.fillText('h⁺',this.x,this.y);
+    }
+  }
+}
+
+class Flash{
+  constructor(x,y){this.x=x;this.y=y;this.t=0;this.done=false}
+  update(){this.t+=.03*spd;if(this.t>=1)this.done=true}
+  draw(){
+    const a=1-this.t,r=this.t*16;
+    X.beginPath();X.arc(this.x,this.y,r,0,Math.PI*2);
+    X.strokeStyle=`rgba(167,139,250,${a})`;X.lineWidth=1.3;X.stroke();
+    X.font=`${7+this.t*3}px JetBrains Mono`;X.fillStyle=`rgba(167,139,250,${a})`;
+    X.textAlign='center';X.fillText('✦',this.x,this.y-r*.3);
+  }
+}
+
+// ── Init particles ───────────────────────────────────────────
+function initP(){
+  elec=[];hole=[];injE=[];injH=[];flashes=[];
+  calcR();
+  if(mode==='pn'){
+    const ne=Math.round(5+(Math.log10(Nd)-15)*2.5);
+    const nh=Math.round(5+(Math.log10(Na)-15)*2.5);
+    for(let i=0;i<ne;i++) elec.push(new Carrier(R.nL+18+Math.random()*(R.nR-R.nL-36),BT+15+Math.random()*(BH-30),'e'));
+    for(let i=0;i<nh;i++) hole.push(new Carrier(R.pL+18+Math.random()*(R.pR-R.pL-36),BT+15+Math.random()*(BH-30),'h'));
+  }else{
+    const isN=mode==='npn';
+    const nE=Math.round(5+(Math.log10(isN?Nd:Na)-15)*2.5);
+    const nB=Math.round(2+(Math.log10(isN?Na:Nd)-15)*1);
+    const nC=Math.round(5+(Math.log10(isN?Nd:Na)-15)*2.5);
+    for(let i=0;i<nE;i++){const x=R.eL+12+Math.random()*(R.eR-R.eL-24);(isN?elec:hole).push(new Carrier(x,BT+15+Math.random()*(BH-30),isN?'e':'h'))}
+    for(let i=0;i<nB;i++){const x=R.bL+6+Math.random()*(R.bR-R.bL-12);(isN?hole:elec).push(new Carrier(x,BT+15+Math.random()*(BH-30),isN?'h':'e'))}
+    for(let i=0;i<nC;i++){const x=R.cL+12+Math.random()*(R.cR-R.cL-24);(isN?elec:hole).push(new Carrier(x,BT+15+Math.random()*(BH-30),isN?'e':'h'))}
+  }
+}
+
+// ── Injection & Breakdown Generation ─────────────────────────
+let injTmr=0;
+function tryInj(){
+  if(mode==='pn'){
+    if(bias!=='fwd'||Va<=0) return;
+    injTmr++;
+    const rate=Math.max(2,30-Va*25);
+    if(injTmr<rate/spd) return;
+    injTmr=0;
+    const iy=BT+20+Math.random()*(BH-40);
+    const ie=new Carrier(R.dL-2,iy,'e',true);ie.vx=-.6*spd;injE.push(ie);
+    const ih=new Carrier(R.dR+2,iy,'h',true);ih.vx=.6*spd;injH.push(ih);
+    return;
+  }
+  // BJT: injection driven by actual VBE/VCB values, not mode names
+  const isN=mode==='npn';
+  injTmr++;
+  const rate=Math.max(2,10);
+  if(injTmr<rate/spd) return;
+  injTmr=0;
+
+  // EB junction: inject from emitter into base when VBE > ~0.3V (forward)
+  if(VBE>0.1){
+    const n=Math.min(4,Math.max(1,Math.round(VBE*4))); // more carriers at higher VBE
+    for(let i=0;i<n;i++){
+      const iy=BT+25+Math.random()*(BH-50);
+      const c=new Carrier(R.d1R+2,iy,isN?'e':'h',true);c.vx=.4*spd;
+      (isN?injE:injH).push(c);
+    }
+  }
+
+  // CB junction: inject from collector into base when VCB > ~0.1V (forward)
+  // This happens in saturation and reverse active
+  if(VCB>0.1){
+    const nc=Math.min(3,Math.max(1,Math.round(VCB*3)));
+    for(let i=0;i<nc;i++){
+      const iy=BT+25+Math.random()*(BH-50);
+      const c=new Carrier(R.d2L-2,iy,isN?'e':'h',true);c.vx=-.3*spd;
+      c._fromCollector=true;
+      (isN?injE:injH).push(c);
+    }
+  }
+
+  // If both junctions reverse (cutoff): extremely rare leakage only
+  if(VBE<0&&VCB<0){
+    if(Math.random()<0.004){
+      const iy=BT+25+Math.random()*(BH-50);
+      const c=new Carrier(R.d1R+2,iy,isN?'e':'h',true);c.vx=.06*spd;
+      (isN?injE:injH).push(c);
+    }
+  }
+}
+function tryBreakGen(){
+  if(!isBreak()||mode!=='pn') return;
+  // Avalanche/Zener: massive carrier generation in depletion region
+  // Rate scales with how far past VBR we are (more voltage = more cascade)
+  const overV=Math.abs(Va)-Vbr();
+  const intensity=Math.min(8,Math.max(1,Math.round(1+overV*1.5)));
+  // Generate every few frames, more frequently at higher overvoltage
+  const interval=Math.max(1,Math.round(3/spd));
+  if(fc%interval!==0) return;
+  for(let i=0;i<intensity;i++){
+    const ax=R.dL+Math.random()*(R.dR-R.dL);
+    const ay=BT+20+Math.random()*(BH-40);
+    // Electron-hole pair created by impact ionization (avalanche) or tunneling (Zener)
+    // E-field sweeps electron → N (right), hole → P (left) at HIGH velocity
+    const ie=new Carrier(ax,ay,'e',true);
+    ie.vx=1.5*spd; // fast sweep toward N
+    ie._isBreakdown=true; // tag so physics doesn't apply diffusion kill
+    injE.push(ie);
+    const ih=new Carrier(ax,ay,'h',true);
+    ih.vx=-1.5*spd; // fast sweep toward P
+    ih._isBreakdown=true;
+    injH.push(ih);
+  }
+}
+
+// ── Maintain particle counts ─────────────────────────────────
+function maintain(){
+  if(mode==='pn'){
+    const tE=Math.round(5+(Math.log10(Nd)-15)*2.5);
+    const tH=Math.round(5+(Math.log10(Na)-15)*2.5);
+    while(elec.filter(c=>!c.inj).length<tE)
+      elec.push(new Carrier(R.nL+20+Math.random()*(R.nR-R.nL-40),BT+18+Math.random()*(BH-36),'e'));
+    while(hole.filter(c=>!c.inj).length<tH)
+      hole.push(new Carrier(R.pL+20+Math.random()*(R.pR-R.pL-40),BT+18+Math.random()*(BH-36),'h'));
+  }else{
+    const isN=mode==='npn',et=isN?'e':'h',bt=isN?'h':'e';
+    const tE=Math.round(5+(Math.log10(isN?Nd:Na)-15)*2.5);
+    const tB=Math.round(2+(Math.log10(isN?Na:Nd)-15)*1);
+    const tC=Math.round(5+(Math.log10(isN?Nd:Na)-15)*2.5);
+    const ea=isN?elec:hole,ba=isN?hole:elec,ca=isN?elec:hole;
+    while(ea.filter(c=>!c.inj&&c.x<R.d1L).length<tE)
+      ea.push(new Carrier(R.eL+12+Math.random()*(R.eR-R.eL-24),BT+18+Math.random()*(BH-36),et));
+    while(ba.filter(c=>!c.inj&&c.x>R.bL&&c.x<R.bR).length<tB)
+      ba.push(new Carrier(R.bL+6+Math.random()*(R.bR-R.bL-12),BT+18+Math.random()*(BH-36),bt));
+    while(ca.filter(c=>!c.inj&&c.x>R.d2R).length<tC)
+      ca.push(new Carrier(R.cL+12+Math.random()*(R.cR-R.cL-24),BT+18+Math.random()*(BH-36),et));
+  }
+  const capInj=isBreak()?60:35;
+  if(injE.length>capInj)injE.shift();
+  if(injH.length>capInj)injH.shift();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════════════════════════════
+function drawBg(){X.fillStyle='#0d1117';X.fillRect(0,0,W,H)}
+
+function drawPN(){
+  X.fillStyle='rgba(255,77,109,.04)';X.fillRect(R.pL,BT,R.pR-R.pL,BH);
+  X.fillStyle='rgba(0,212,255,.035)';X.fillRect(R.nL,BT,R.nR-R.nL,BH);
+  X.fillStyle='rgba(251,191,36,.08)';X.fillRect(R.dL,BT,R.dR-R.dL,BH);
+  X.strokeStyle='#fbbf24';X.lineWidth=2;
+  X.beginPath();X.moveTo(R.dL,BT);X.lineTo(R.dL,BB);X.stroke();
+  X.beginPath();X.moveTo(R.dR,BT);X.lineTo(R.dR,BB);X.stroke();
+  // Junction line (metallurgical)
+  X.strokeStyle='rgba(255,255,255,.06)';X.lineWidth=1;X.setLineDash([4,4]);
+  X.beginPath();X.moveTo(R.jx,BT);X.lineTo(R.jx,BB);X.stroke();X.setLineDash([]);
+  // Bar outline
+  X.strokeStyle='#1e3a5f';X.lineWidth=1;X.strokeRect(0,BT,W,BH);
+  // Labels
+  X.font='bold 11px Space Grotesk';X.textAlign='left';X.fillStyle='#ff4d6d';X.fillText('P-TYPE (Nₐ)',8,BT+16);
+  X.textAlign='right';X.fillStyle='#00d4ff';X.fillText('N-TYPE (Nᴅ)',W-8,BT+16);
+  X.textAlign='center';X.font='8px JetBrains Mono';X.fillStyle='#fbbf24';X.fillText('DEPLETION',(R.dL+R.dR)/2,BT-5);
+  // W_d arrows
+  const dc=(R.dL+R.dR)/2;
+  X.strokeStyle='#fbbf24';X.lineWidth=.8;
+  X.beginPath();X.moveTo(R.dL+2,BB+9);X.lineTo(R.dR-2,BB+9);X.stroke();
+  X.font='7px JetBrains Mono';X.fillStyle='#fbbf24';X.fillText('W_d',dc,BB+19);
+  // x_p / x_n annotation
+  X.font='6px JetBrains Mono';X.fillStyle='rgba(251,191,36,.5)';
+  X.fillText('x_p',(R.dL+R.jx)/2,BB+8);X.fillText('x_n',(R.jx+R.dR)/2,BB+8);
+
+  drawBoundIons(R.dL,R.dR,R.jx);
+  drawEFieldArrows(R.dL,R.dR);
+  drawAtomGrid(R.pL+10,R.pR-10,BT+28,BB-10,'p');
+  drawAtomGrid(R.nL+10,R.nR-10,BT+28,BB-10,'n');
+}
+
+function drawBJT(){
+  const isN=mode==='npn';
+  const ec=isN?'rgba(0,212,255,.035)':'rgba(255,77,109,.04)';
+  const bc=isN?'rgba(255,77,109,.04)':'rgba(0,212,255,.035)';
+  X.fillStyle=ec;X.fillRect(R.eL,BT,R.eR-R.eL,BH);
+  X.fillStyle=bc;X.fillRect(R.bL,BT,R.bR-R.bL,BH);
+  X.fillStyle=ec;X.fillRect(R.cL,BT,R.cR-R.cL,BH);
+  [{l:R.d1L,r:R.d1R},{l:R.d2L,r:R.d2R}].forEach(d=>{
+    X.fillStyle='rgba(251,191,36,.08)';X.fillRect(d.l,BT,d.r-d.l,BH);
+    X.strokeStyle='#fbbf24';X.lineWidth=1.8;
+    X.beginPath();X.moveTo(d.l,BT);X.lineTo(d.l,BB);X.stroke();
+    X.beginPath();X.moveTo(d.r,BT);X.lineTo(d.r,BB);X.stroke();
+    drawEFieldArrows(d.l,d.r);
+  });
+  drawBoundIonsSimple(R.d1L,R.d1R,!isN);
+  drawBoundIonsSimple(R.d2L,R.d2R,isN);
+  X.strokeStyle='#1e3a5f';X.lineWidth=1;X.strokeRect(0,BT,W,BH);
+  X.font='bold 10px Space Grotesk';X.textAlign='center';
+  const ecc=isN?'#00d4ff':'#ff4d6d',bcc=isN?'#ff4d6d':'#00d4ff';
+  X.fillStyle=ecc;X.fillText(`E (${isN?'N':'P'})`,(R.eL+R.eR)/2,BT+15);
+  X.fillStyle=bcc;X.fillText(`B (${isN?'P':'N'})`,(R.bL+R.bR)/2,BT+15);
+  X.fillStyle=ecc;X.fillText(`C (${isN?'N':'P'})`,(R.cL+R.cR)/2,BT+15);
+  drawAtomGrid(R.eL+6,R.eR-6,BT+26,BB-10,isN?'n':'p');
+  drawAtomGrid(R.bL+4,R.bR-4,BT+26,BB-10,isN?'p':'n');
+  drawAtomGrid(R.cL+6,R.cR-6,BT+26,BB-10,isN?'n':'p');
+}
+
+function drawBoundIons(l,r,jx){
+  const rows=5,sp=BH/(rows+1);
+  // Multiple columns of ions scaled by depletion width
+  const colsP=Math.max(1,Math.round((jx-l)/30));
+  const colsN=Math.max(1,Math.round((r-jx)/30));
+  for(let i=0;i<rows;i++){
+    const y=BT+sp*(i+1);
+    for(let c=0;c<colsP;c++){const x=l+(jx-l)*(c+.5)/colsP;drawIon(x,y,false)}
+    for(let c=0;c<colsN;c++){const x=jx+(r-jx)*(c+.5)/colsN;drawIon(x,y,true)}
+  }
+}
+function drawBoundIonsSimple(l,r,posL){
+  const mid=(l+r)/2,rows=Math.min(4,Math.max(2,Math.round(BH/120))),sp=BH/(rows+1);
+  for(let i=0;i<rows;i++){
+    const y=BT+sp*(i+1);
+    drawIon(l+(mid-l)*.5,y,posL);
+    drawIon(mid+(r-mid)*.5,y,!posL);
+  }
+}
+function drawIon(x,y,pos){
+  const col=pos?'#ef4444':'#3b82f6',bg=pos?'rgba(239,68,68,.10)':'rgba(59,130,246,.10)';
+  X.beginPath();X.arc(x,y,6,0,Math.PI*2);X.fillStyle=bg;X.fill();
+  X.strokeStyle=col;X.lineWidth=1;X.stroke();
+  X.font='bold 9px JetBrains Mono';X.fillStyle=col;
+  X.textAlign='center';X.textBaseline='middle';X.fillText(pos?'+':'−',x,y);
+}
+
+function drawEFieldArrows(l,r){
+  const my=(BT+BB)/2,cnt=Math.max(2,Math.round((r-l)/40));
+  X.save();X.globalAlpha=.25;
+  for(let i=0;i<cnt;i++){
+    const x=l+(r-l)*(i+.5)/cnt;
+    // E field points from N to P → leftward (−x)
+    X.strokeStyle='#fbbf24';X.lineWidth=1.2;
+    X.beginPath();X.moveTo(x+8,my);X.lineTo(x-8,my);X.stroke();
+    X.beginPath();X.moveTo(x-8,my);X.lineTo(x-4,my-3);X.lineTo(x-4,my+3);X.closePath();
+    X.fillStyle='#fbbf24';X.fill();
+  }
+  X.restore();
+}
+
+function drawAtomGrid(x1,x2,y1,y2,tp){
+  const cols=Math.max(2,Math.round((x2-x1)/60));
+  const rows=Math.min(5,Math.max(2,Math.round((y2-y1)/80)));
+  const cw=(x2-x1)/(cols+1),ch=(y2-y1)/(rows+1),ar=10;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      let ax=x1+cw*(c+1),ay=y1+ch*(r+1);
+      if(hiT){ax+=Math.sin(fc*.2+r*5+c*3)*1;ay+=Math.cos(fc*.15+r*3+c*7)*1}
+      // Bonds
+      if(c<cols-1){X.beginPath();X.moveTo(ax+ar,ay);X.lineTo(x1+cw*(c+2)-ar,ay);X.strokeStyle='#1e3a5f';X.lineWidth=.6;X.stroke()}
+      if(r<rows-1){X.beginPath();X.moveTo(ax,ay+ar);X.lineTo(ax,y1+ch*(r+2)-ar);X.strokeStyle='#1e3a5f';X.lineWidth=.6;X.stroke()}
+      const isDop=(r+c)%4===1;
+      const g=X.createRadialGradient(ax,ay,0,ax,ay,ar);
+      if(isDop&&tp==='n'){g.addColorStop(0,'#0f3320');g.addColorStop(1,'#061a10');X.beginPath();X.arc(ax,ay,ar,0,Math.PI*2);X.fillStyle=g;X.fill();X.strokeStyle='#22c55e';X.lineWidth=1;X.stroke();X.font='6px JetBrains Mono';X.fillStyle='#4ade80';X.textAlign='center';X.textBaseline='middle';X.fillText('P',ax,ay)}
+      else if(isDop&&tp==='p'){g.addColorStop(0,'#2a1040');g.addColorStop(1,'#130820');X.beginPath();X.arc(ax,ay,ar,0,Math.PI*2);X.fillStyle=g;X.fill();X.strokeStyle='#a855f7';X.lineWidth=1;X.stroke();X.font='6px JetBrains Mono';X.fillStyle='#c084fc';X.textAlign='center';X.textBaseline='middle';X.fillText('B',ax,ay)}
+      else{g.addColorStop(0,'#1e3a5f');g.addColorStop(1,'#0f1f38');X.beginPath();X.arc(ax,ay,ar,0,Math.PI*2);X.fillStyle=g;X.fill();X.strokeStyle='#2563eb';X.lineWidth=.7;X.stroke();X.font='6px JetBrains Mono';X.fillStyle='#60a5fa';X.textAlign='center';X.textBaseline='middle';X.fillText('Si',ax,ay)}
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRAPHS — drawn on separate canvases below the simulation
+// ═══════════════════════════════════════════════════════════════
+const gIV=document.getElementById('gIV'), cIV=gIV.getContext('2d');
+const gBand=document.getElementById('gBand'), cBand=gBand.getContext('2d');
+const gRho=document.getElementById('gRho'), cRho=gRho.getContext('2d');
+const gEf=document.getElementById('gEfield'), cEf=gEf.getContext('2d');
+const GW=340, GH=220; // graph canvas size
+
+// ── I-V Characteristic Curve ─────────────────────────────────
+function drawIVGraph(){
+  const c=cIV,w=GW,h=GH;
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  // Title
+  c.font='bold 12px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('I-V Characteristic (Shockley)',w/2,18);
+  // Axes
+  const ox=60,oy=h-40,axW=w-90,axH=h-75;
+  c.strokeStyle='#334155';c.lineWidth=1;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke(); // V axis
+  c.beginPath();c.moveTo(ox,oy+5);c.lineTo(ox,oy-axH);c.stroke(); // I axis
+  // Axis labels
+  c.font='10px JetBrains Mono';c.fillStyle='#64748b';c.textAlign='center';
+  c.fillText('V (Volt)',ox+axW/2,h-8);
+  c.save();c.translate(14,oy-axH/2);c.rotate(-Math.PI/2);c.fillText('J (A/cm²)',0,0);c.restore();
+  // V tick marks
+  c.font='8px JetBrains Mono';c.fillStyle='#475569';c.textAlign='center';
+  const vMin=-1.0,vMax=1.0;
+  for(let v=vMin;v<=vMax;v+=0.5){
+    const px=ox+(v-vMin)/(vMax-vMin)*axW;
+    c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+4);c.strokeStyle='#334155';c.stroke();
+    c.fillText(v.toFixed(1),px,oy+14);
+  }
+  // Zero line (V=0)
+  const zx=ox+(0-vMin)/(vMax-vMin)*axW;
+  c.strokeStyle='rgba(255,255,255,.06)';c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(zx,oy-axH);c.lineTo(zx,oy);c.stroke();c.setLineDash([]);
+
+  // Plot Shockley curve
+  const jRef=Math.max(Math.abs(getJ(0.7)),1e-15);
+  c.strokeStyle='#34d399';c.lineWidth=2;c.beginPath();
+  let first=true;
+  for(let v=vMin;v<=vMax;v+=0.01){
+    const j=getJ(v);
+    const jN=Math.min(1.1,Math.max(-0.15,j/jRef));
+    const px=ox+(v-vMin)/(vMax-vMin)*axW;
+    const py=oy-jN*axH;
+    if(first){c.moveTo(px,Math.max(oy-axH-5,Math.min(oy+5,py)));first=false}
+    else c.lineTo(px,Math.max(oy-axH-5,Math.min(oy+5,py)));
+  }
+  c.stroke();
+
+  // Operating point
+  const vOp=mode!=='pn'?VBE:Va;
+  if(vOp>=vMin&&vOp<=vMax){
+    const cpx=ox+(vOp-vMin)/(vMax-vMin)*axW;
+    const cpJ=getJ(vOp);
+    const cpN=Math.min(1.1,Math.max(-0.15,cpJ/jRef));
+    const cpy=Math.max(oy-axH-5,Math.min(oy+5,oy-cpN*axH));
+    c.beginPath();c.arc(cpx,cpy,5,0,Math.PI*2);
+    c.fillStyle='#fbbf24';c.fill();
+    c.strokeStyle='#92400e';c.lineWidth=1.5;c.stroke();
+    c.strokeStyle='rgba(251,191,36,.3)';c.lineWidth=.8;c.setLineDash([3,3]);
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(cpx,oy);c.stroke();
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(ox,cpy);c.stroke();
+    c.setLineDash([]);
+    c.font='9px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+    c.fillText((mode!=='pn'?'V_BE=':'Vₐ=')+vOp.toFixed(1)+'V',cpx+8,cpy-6);
+  }
+
+  // Breakdown zone
+  if(isBreak()){
+    c.font='bold 10px JetBrains Mono';c.fillStyle='rgba(239,68,68,.8)';c.textAlign='center';
+    c.fillText('⚠ BREAKDOWN',w/2,38);
+  }
+  // Equation
+  c.font='9px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('J = J₀(e^(V/V_T) − 1)',w-12,34);
+}
+
+// ── Energy Band Diagram ──────────────────────────────────────
+function drawBands(){
+  const c=cBand,w=GW,h=GH;
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  c.font='bold 12px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Energy Band Diagram',w/2,18);
+
+  const vBand=mode!=='pn'?VBE:Va;
+  const v0=V0(),bar=Math.max(0,Math.min(2.5,v0-vBand));
+  const mx=w/2, padX=30, padT=35, padB=30;
+  const bandH=h-padT-padB;
+  const bandMid=padT+bandH/2;
+
+  // P-side (left) and N-side (right) energy levels
+  // Ec,Ev on P-side are higher in energy; on N-side lower by q*(V0-Va)
+  const ecPy=bandMid-28, evPy=bandMid+28; // P-side Ec,Ev
+  const drop=Math.min(bar*35,bandH*0.45); // pixel drop for barrier
+  const ecNy=ecPy+drop, evNy=evPy+drop; // N-side
+
+  // Shaded band gap regions
+  c.fillStyle='rgba(251,191,36,.04)';
+  // P-side band gap
+  c.fillRect(padX,ecPy,mx-padX-10,evPy-ecPy);
+  // N-side band gap
+  c.fillRect(mx+10,ecNy,w-padX-mx-10,evNy-ecNy);
+
+  // Ec (conduction band)
+  c.strokeStyle='#00d4ff';c.lineWidth=2.5;
+  c.beginPath();c.moveTo(padX,ecPy);
+  c.bezierCurveTo(mx-20,ecPy, mx+20,ecNy, w-padX,ecNy);
+  c.stroke();
+  // Ev (valence band)
+  c.strokeStyle='#ff4d6d';c.lineWidth=2.5;
+  c.beginPath();c.moveTo(padX,evPy);
+  c.bezierCurveTo(mx-20,evPy, mx+20,evNy, w-padX,evNy);
+  c.stroke();
+
+  // Fermi level(s)
+  c.strokeStyle='#22c55e';c.lineWidth=1.3;c.setLineDash([5,3]);
+  if(Math.abs(mode!=="pn"?VBE:Va)<0.02){
+    // Equilibrium: single Ef
+    const ef=(ecPy+evPy)/2+drop*.3;
+    c.beginPath();c.moveTo(padX,ef);c.lineTo(w-padX,ef);c.stroke();
+    c.font='9px JetBrains Mono';c.fillStyle='#22c55e';c.textAlign='left';
+    c.fillText('E_F',w-padX+4,ef+3);
+  }else{
+    // Quasi-Fermi levels split
+    const efP=(ecPy+evPy)/2+drop*.12;
+    const efN=(ecNy+evNy)/2-drop*.12;
+    c.beginPath();c.moveTo(padX,efP);c.lineTo(mx-15,efP);c.stroke();
+    c.beginPath();c.moveTo(mx+15,efN);c.lineTo(w-padX,efN);c.stroke();
+    c.font='8px JetBrains Mono';c.fillStyle='#22c55e';c.textAlign='left';
+    c.fillText('E_Fp',padX+3,efP-5);
+    c.textAlign='right';c.fillText('E_Fn',w-padX-3,efN-5);
+  }
+  c.setLineDash([]);
+
+  // Barrier annotation arrow
+  if(drop>5){
+    c.strokeStyle='#fbbf24';c.lineWidth=1;c.setLineDash([2,2]);
+    c.beginPath();c.moveTo(mx+30,ecPy);c.lineTo(mx+30,ecNy);c.stroke();c.setLineDash([]);
+    // Arrowheads
+    c.fillStyle='#fbbf24';
+    c.beginPath();c.moveTo(mx+30,ecPy);c.lineTo(mx+27,ecPy+5);c.lineTo(mx+33,ecPy+5);c.closePath();c.fill();
+    c.beginPath();c.moveTo(mx+30,ecNy);c.lineTo(mx+27,ecNy-5);c.lineTo(mx+33,ecNy-5);c.closePath();c.fill();
+    c.font='10px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+    c.fillText(`q(V₀−Vₐ)=${bar.toFixed(2)}eV`,mx+36,(ecPy+ecNy)/2+3);
+  }
+
+  // Eg label on P-side
+  c.strokeStyle='rgba(251,191,36,.35)';c.lineWidth=.8;c.setLineDash([2,2]);
+  c.beginPath();c.moveTo(padX+15,ecPy);c.lineTo(padX+15,evPy);c.stroke();c.setLineDash([]);
+  c.font='8px JetBrains Mono';c.fillStyle='rgba(251,191,36,.5)';c.textAlign='left';
+  c.fillText('Eg=1.12eV',padX+19,(ecPy+evPy)/2+3);
+
+  // Band labels
+  c.font='10px JetBrains Mono';c.textAlign='left';
+  c.fillStyle='#00d4ff';c.fillText('Ec',padX+3,ecPy-6);
+  c.fillStyle='#ff4d6d';c.fillText('Ev',padX+3,evPy+14);
+
+  // Region labels
+  c.font='bold 11px Space Grotesk';c.textAlign='center';
+  c.fillStyle='#ff4d6d';c.fillText('P',padX+25,h-10);
+  c.fillStyle='#fbbf24';c.fillText('Junction',mx,h-10);
+  c.fillStyle='#00d4ff';c.fillText('N',w-padX-25,h-10);
+}
+
+// ── Charge Density ρ(x) ──────────────────────────────────────
+function drawProfiles(){
+  const c=cRho,w=GW,h=GH;
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  if(mode!=='pn'){drawBJTTransfer(c,w,h);return}
+  c.font='bold 12px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Charge Density ρ(x)',w/2,18);
+
+  const padX=40,padT=32,padB=25;
+  const axW=w-2*padX, axH=h-padT-padB;
+  const midY=padT+axH/2;
+
+  // Zero line
+  c.strokeStyle='#334155';c.lineWidth=1;
+  c.beginPath();c.moveTo(padX,midY);c.lineTo(padX+axW,midY);c.stroke();
+  // Vertical axis
+  c.beginPath();c.moveTo(padX,padT);c.lineTo(padX,padT+axH);c.stroke();
+
+  // Map depletion edges to graph coordinates
+  const dLf=R.dL/W, dRf=R.dR/W, jf=R.jx/W;
+  const dLpx=padX+dLf*axW, dRpx=padX+dRf*axW, jpx=padX+jf*axW;
+  const halfH=axH/2-8;
+  // Heights proportional to doping
+  const naH=halfH*Math.min(1,Na/Math.max(Na,Nd));
+  const ndH=halfH*Math.min(1,Nd/Math.max(Na,Nd));
+
+  // -qNa region (P-side depletion: below zero line)
+  c.fillStyle='rgba(59,130,246,.12)';
+  c.fillRect(dLpx,midY,jpx-dLpx,naH);
+  c.strokeStyle='#3b82f6';c.lineWidth=2;
+  c.beginPath();c.moveTo(padX,midY);c.lineTo(dLpx,midY);c.lineTo(dLpx,midY+naH);
+  c.lineTo(jpx,midY+naH);c.lineTo(jpx,midY);c.stroke();
+
+  // +qNd region (N-side depletion: above zero line)
+  c.fillStyle='rgba(239,68,68,.12)';
+  c.fillRect(jpx,midY-ndH,dRpx-jpx,ndH);
+  c.strokeStyle='#ef4444';c.lineWidth=2;
+  c.beginPath();c.moveTo(jpx,midY);c.lineTo(jpx,midY-ndH);
+  c.lineTo(dRpx,midY-ndH);c.lineTo(dRpx,midY);c.lineTo(padX+axW,midY);c.stroke();
+
+  // Labels
+  c.font='10px JetBrains Mono';
+  c.fillStyle='#3b82f6';c.textAlign='center';c.fillText('−qNₐ',(dLpx+jpx)/2,midY+naH+14);
+  c.fillStyle='#ef4444';c.fillText('+qNᴅ',(jpx+dRpx)/2,midY-ndH-6);
+
+  // Depletion edge markers
+  c.strokeStyle='rgba(251,191,36,.3)';c.lineWidth=.8;c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(dLpx,padT);c.lineTo(dLpx,padT+axH);c.stroke();
+  c.beginPath();c.moveTo(dRpx,padT);c.lineTo(dRpx,padT+axH);c.stroke();
+  c.beginPath();c.moveTo(jpx,padT);c.lineTo(jpx,padT+axH);c.stroke();
+  c.setLineDash([]);
+
+  c.font='7px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+  c.fillText('x_p',dLpx,padT+axH+10);c.fillText('x_n',dRpx,padT+axH+10);c.fillText('junction',jpx,padT-3);
+
+  // Region labels
+  c.font='9px Space Grotesk';c.fillStyle='#ff4d6d';c.fillText('P',padX+15,h-6);
+  c.fillStyle='#00d4ff';c.fillText('N',padX+axW-15,h-6);
+
+  // Axis labels
+  c.font='9px JetBrains Mono';c.fillStyle='#64748b';c.textAlign='center';
+  c.fillText('x',padX+axW/2,h-4);
+  c.save();c.translate(10,midY);c.rotate(-Math.PI/2);c.fillText('ρ(x)',0,0);c.restore();
+  // Charge neutrality note
+  c.font='8px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('Nₐ·x_p = Nᴅ·x_n',w-12,h-6);
+}
+
+// ── Electric Field E(x) ──────────────────────────────────────
+function drawEFieldGraph(){
+  const c=cEf,w=GW,h=GH;
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  if(mode!=='pn'){drawBJTOutput(c,w,h);return}
+  c.font='bold 12px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Electric Field E(x)',w/2,18);
+
+  const padX=40,padT=32,padB=25;
+  const axW=w-2*padX, axH=h-padT-padB;
+  const baseY=padT+axH; // E-field is negative, so baseline at bottom
+
+  // Zero line at bottom (E=0)
+  c.strokeStyle='#334155';c.lineWidth=1;
+  c.beginPath();c.moveTo(padX,baseY);c.lineTo(padX+axW,baseY);c.stroke();
+  c.beginPath();c.moveTo(padX,padT);c.lineTo(padX,baseY);c.stroke();
+
+  // Map depletion edges
+  const dLf=R.dL/W, dRf=R.dR/W, jf=R.jx/W;
+  const dLpx=padX+dLf*axW, dRpx=padX+dRf*axW, jpx=padX+jf*axW;
+  const ePeakH=axH*0.85; // height for E_max
+
+  // Triangular E-field profile (negative, pointing N→P)
+  // Rises linearly from dL to junction, falls linearly from junction to dR
+  c.fillStyle='rgba(251,191,36,.08)';
+  c.beginPath();c.moveTo(dLpx,baseY);c.lineTo(jpx,baseY-ePeakH);c.lineTo(dRpx,baseY);c.closePath();c.fill();
+
+  c.strokeStyle='#fbbf24';c.lineWidth=2.5;
+  c.beginPath();
+  c.moveTo(padX,baseY);c.lineTo(dLpx,baseY);
+  c.lineTo(jpx,baseY-ePeakH);
+  c.lineTo(dRpx,baseY);c.lineTo(padX+axW,baseY);
+  c.stroke();
+
+  // E_max label with arrow
+  c.strokeStyle='rgba(251,191,36,.4)';c.lineWidth=.8;c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(jpx,baseY);c.lineTo(jpx,baseY-ePeakH);c.stroke();c.setLineDash([]);
+  c.fillStyle='#fbbf24';c.font='10px JetBrains Mono';c.textAlign='left';
+  const emVal=Emax(Va);
+  const emExp=Math.floor(Math.log10(Math.max(emVal,1)));
+  const emMant=(emVal/Math.pow(10,emExp)).toFixed(1);
+  c.fillText(`E_max=${emMant}×10${sup(emExp)} V/cm`,jpx+8,baseY-ePeakH+5);
+
+  // Direction arrow: E points from N→P (leftward)
+  c.fillStyle='rgba(251,191,36,.6)';
+  const ay=baseY-ePeakH/2;
+  c.beginPath();c.moveTo(jpx+15,ay);c.lineTo(jpx-15,ay);c.stroke();
+  c.beginPath();c.moveTo(jpx-15,ay);c.lineTo(jpx-9,ay-4);c.lineTo(jpx-9,ay+4);c.closePath();c.fill();
+  c.font='8px JetBrains Mono';c.fillStyle='rgba(251,191,36,.5)';c.textAlign='center';
+  c.fillText('E → (N to P)',jpx,ay+14);
+
+  // Depletion edge markers
+  c.strokeStyle='rgba(251,191,36,.2)';c.lineWidth=.8;c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(dLpx,padT);c.lineTo(dLpx,baseY);c.stroke();
+  c.beginPath();c.moveTo(dRpx,padT);c.lineTo(dRpx,baseY);c.stroke();
+  c.setLineDash([]);
+
+  c.font='7px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+  c.fillText('x_p',dLpx,baseY+12);c.fillText('x_n',dRpx,baseY+12);
+
+  // Axis labels
+  c.font='9px JetBrains Mono';c.fillStyle='#64748b';c.textAlign='center';
+  c.fillText('x',padX+axW/2,h-4);
+  c.save();c.translate(10,baseY-axH/2);c.rotate(-Math.PI/2);c.fillText('|E(x)|',0,0);c.restore();
+
+  // Formula
+  c.font='8px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('E_max = 2(V₀−Vₐ)/W_d',w-12,h-6);
+
+  // Region labels
+  c.font='9px Space Grotesk';c.fillStyle='#ff4d6d';c.textAlign='center';c.fillText('P',padX+15,padT-3);
+  c.fillStyle='#00d4ff';c.fillText('N',padX+axW-15,padT-3);
+}
+
+// ── BJT Transfer Characteristic: IC vs VBE ───────────────────
+function drawBJTTransfer(c,w,h){
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  c.font='bold 11px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('BJT Transfer: I_C vs V_BE',w/2,16);
+  const b=getBJTParams();
+  const padX=45,padT=28,padB=22;
+  const axW=w-padX-15,axH=h-padT-padB;
+  const ox=padX,oy=padT+axH;
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke();
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,padT);c.stroke();
+  c.font='8px JetBrains Mono';c.fillStyle='#64748b';c.textAlign='center';
+  c.fillText('V_BE (V)',ox+axW/2,h-4);
+  c.save();c.translate(10,padT+axH/2);c.rotate(-Math.PI/2);c.fillText('I_C',0,0);c.restore();
+  // Ticks
+  c.fillStyle='#475569';c.font='7px JetBrains Mono';
+  for(let v=0;v<=1;v+=0.2){const px=ox+v*axW;c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+3);c.stroke();c.fillText(v.toFixed(1),px,oy+12)}
+  // IC curve: exponential with VBE (Shockley-like)
+  const j0=J0val(),vt=VT();
+  const jMax=Math.max(j0*Math.exp(0.8/vt),1e-10);
+  c.strokeStyle='#34d399';c.lineWidth=2;c.beginPath();
+  let first=true;
+  for(let v=0;v<=1;v+=0.005){
+    const ic=j0*(Math.exp(Math.min(v/vt,35))-1);
+    const norm=Math.min(1,ic/jMax);
+    const px=ox+v*axW,py=oy-norm*axH;
+    if(first){c.moveTo(px,py);first=false}else c.lineTo(px,py);
+  }
+  c.stroke();
+  // Operating point
+  if(VBE>=0&&VBE<=1){
+    const icOp=j0*(Math.exp(Math.min(VBE/vt,35))-1);
+    const normOp=Math.min(1,icOp/jMax);
+    const cpx=ox+VBE*axW,cpy=oy-normOp*axH;
+    c.beginPath();c.arc(cpx,cpy,4,0,Math.PI*2);c.fillStyle='#fbbf24';c.fill();
+    c.strokeStyle='rgba(251,191,36,.3)';c.lineWidth=.7;c.setLineDash([3,3]);
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(cpx,oy);c.stroke();c.setLineDash([]);
+  }
+  c.font='8px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('β='+b.beta,w-10,padT+12);
+}
+
+// ── BJT Output Characteristic: IC vs VCE ─────────────────────
+function drawBJTOutput(c,w,h){
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#1e3a5f';c.lineWidth=1;c.strokeRect(0,0,w,h);
+  c.font='bold 11px Space Grotesk';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('BJT Output: I_C vs V_CE',w/2,16);
+  const b=getBJTParams();
+  const padX=45,padT=28,padB=22;
+  const axW=w-padX-15,axH=h-padT-padB;
+  const ox=padX,oy=padT+axH;
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke();
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,padT);c.stroke();
+  c.font='8px JetBrains Mono';c.fillStyle='#64748b';c.textAlign='center';
+  c.fillText('V_CE (V)',ox+axW/2,h-4);
+  c.save();c.translate(10,padT+axH/2);c.rotate(-Math.PI/2);c.fillText('I_C',0,0);c.restore();
+  // Ticks
+  c.fillStyle='#475569';c.font='7px JetBrains Mono';
+  const vceMax=10;
+  for(let v=0;v<=vceMax;v+=2){const px=ox+v/vceMax*axW;c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+3);c.stroke();c.fillText(v+'',px,oy+12)}
+  // Draw 3 IB curves (different base currents)
+  const colors=['#34d399','#38bdf8','#fbbf24'];
+  const ibLevels=[0.01,0.05,0.1]; // relative IB values
+  const beta=Math.max(1,b.beta);
+  for(let k=0;k<3;k++){
+    const ib=ibLevels[k];
+    const icSat=beta*ib;
+    c.strokeStyle=colors[k];c.lineWidth=1.5;c.beginPath();
+    let f=true;
+    for(let vce=0;vce<=vceMax;vce+=0.1){
+      // Simplified output: IC rises steeply then saturates
+      const ic=icSat*(1-Math.exp(-vce/0.3));
+      const norm=Math.min(1,ic/(beta*0.1));
+      const px=ox+vce/vceMax*axW,py=oy-norm*axH;
+      if(f){c.moveTo(px,py);f=false}else c.lineTo(px,py);
+    }
+    c.stroke();
+    c.font='7px JetBrains Mono';c.fillStyle=colors[k];c.textAlign='left';
+    const labelY=oy-Math.min(1,icSat/(beta*0.1))*axH;
+    c.fillText('I_B='+ib,ox+axW-40,labelY+3);
+  }
+  // VCE operating point
+  const vce=VBE-VCB; // VCE = VBE - VCB (for the current slider values)
+  if(vce>0&&vce<=vceMax){
+    const px=ox+vce/vceMax*axW;
+    c.strokeStyle='rgba(251,191,36,.4)';c.lineWidth=1;c.setLineDash([3,3]);
+    c.beginPath();c.moveTo(px,padT);c.lineTo(px,oy);c.stroke();c.setLineDash([]);
+    c.font='8px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+    c.fillText('V_CE='+vce.toFixed(1),px,padT-2);
+  }
+  // Saturation region label
+  c.fillStyle='rgba(251,191,36,.25)';c.fillRect(ox,padT,0.3/vceMax*axW,axH);
+  c.font='6px JetBrains Mono';c.fillStyle='rgba(251,191,36,.4)';c.textAlign='center';
+  c.fillText('sat',ox+8,padT+axH/2);
+}
+
+// ── Circuit Schematic ────────────────────────────────────────
+function drawCircuit(){
+  if(mode!=='pn') return; // BJT has its own terminal current arrows
+  // Centered, large circuit below the main simulation bar
+  const cw=340,ch=60;
+  const cx=(W-cw)/2, cy=BB+25;
+  // Background panel
+  X.fillStyle='rgba(15,23,42,.75)';
+  X.fillRect(cx-12,cy-18,cw+24,ch+38);
+  X.strokeStyle='#1e3a5f';X.lineWidth=.7;
+  X.strokeRect(cx-12,cy-18,cw+24,ch+38);
+  // Title
+  X.font='7px JetBrains Mono';X.fillStyle='#64748b';X.textAlign='center';
+  X.fillText('Circuit Schematic',cx+cw/2,cy-8);
+
+  X.save();X.globalAlpha=.75;
+  X.strokeStyle='#94a3b8';X.lineWidth=1.2;
+
+  // ── Battery (left side) ──
+  const bx=cx+15, by=cy+ch/2;
+  // Wire from left bottom corner up to battery
+  X.beginPath();X.moveTo(cx,cy+ch);X.lineTo(cx,by);X.lineTo(bx-5,by);X.stroke();
+  // Battery: long line (+) then short line (−)
+  X.lineWidth=2.2;
+  X.beginPath();X.moveTo(bx,by-12);X.lineTo(bx,by+12);X.stroke(); // + plate (long)
+  X.lineWidth=1.2;
+  X.beginPath();X.moveTo(bx+7,by-7);X.lineTo(bx+7,by+7);X.stroke(); // − plate (short)
+  // Polarity labels
+  X.font='bold 8px JetBrains Mono';X.textAlign='center';
+  X.fillStyle='#ef4444';X.fillText('+',bx,by-16);
+  X.fillStyle='#3b82f6';X.fillText('−',bx+7,by-12);
+  // Va label
+  X.font='8px JetBrains Mono';X.fillStyle='#fbbf24';X.textAlign='center';
+  X.fillText(`Vₐ=${Va.toFixed(1)}V`,bx+3,by+22);
+
+  // ── Wire from battery to diode ──
+  X.strokeStyle='#94a3b8';X.lineWidth=1.2;
+  X.beginPath();X.moveTo(bx+7,by);X.lineTo(cx+90,by);X.stroke();
+
+  // ── Diode symbol (centered, larger) ──
+  const dx=cx+110, dy=by;
+  // Triangle (anode side)
+  X.beginPath();
+  X.moveTo(dx-18,dy);X.lineTo(dx+4,dy-14);X.lineTo(dx+4,dy+14);X.closePath();
+  X.strokeStyle=(bias==='fwd'&&Va>0)||isBreak()?'#34d399':'#94a3b8';
+  X.lineWidth=1.5;X.stroke();
+  if(bias==='fwd'&&Va>0){
+    X.fillStyle='rgba(52,211,153,.12)';X.fill();
+  }
+  // Cathode bar
+  X.beginPath();X.moveTo(dx+4,dy-14);X.lineTo(dx+4,dy+14);X.stroke();
+  // Label
+  X.font='7px JetBrains Mono';X.fillStyle='#94a3b8';X.textAlign='center';
+  X.fillText('Diode',dx-7,dy+24);
+  // A / K labels
+  X.font='6px JetBrains Mono';X.fillStyle='#64748b';
+  X.fillText('A',dx-16,dy-10);X.fillText('K',dx+8,dy-10);
+
+  // ── Wire from diode to resistor ──
+  X.strokeStyle='#94a3b8';X.lineWidth=1.2;
+  X.beginPath();X.moveTo(dx+4,dy);X.lineTo(cx+155,dy);X.stroke();
+
+  // ── Resistor (zigzag, larger) ──
+  const rx=cx+160, ry=dy;
+  X.beginPath();X.moveTo(rx,ry);
+  const segs=5, sw=12, sh=8;
+  for(let i=0;i<segs;i++){
+    X.lineTo(rx+sw*(i+0.25), ry+(i%2===0?-sh:sh));
+    X.lineTo(rx+sw*(i+0.75), ry+(i%2===0?sh:-sh));
+  }
+  X.lineTo(rx+sw*segs,ry);X.stroke();
+  // Label
+  X.font='7px JetBrains Mono';X.fillStyle='#94a3b8';X.textAlign='center';
+  X.fillText('R',rx+sw*segs/2,ry+20);
+
+  // ── Wire from resistor to right side and loop back ──
+  X.beginPath();
+  X.moveTo(rx+sw*segs,ry);X.lineTo(cx+cw,ry);
+  X.lineTo(cx+cw,cy+ch);X.lineTo(cx,cy+ch);X.stroke();
+
+  // ── Ground symbol at bottom center ──
+  const gx2=cx+cw/2, gy2=cy+ch;
+  X.lineWidth=1.5;
+  X.beginPath();X.moveTo(gx2,gy2);X.lineTo(gx2,gy2+6);X.stroke();
+  X.lineWidth=1;
+  X.beginPath();X.moveTo(gx2-10,gy2+6);X.lineTo(gx2+10,gy2+6);X.stroke();
+  X.beginPath();X.moveTo(gx2-6,gy2+9);X.lineTo(gx2+6,gy2+9);X.stroke();
+  X.beginPath();X.moveTo(gx2-3,gy2+12);X.lineTo(gx2+3,gy2+12);X.stroke();
+
+  // ── Animated current dots ──
+  if((bias==='fwd'&&Va>0)||isBreak()){
+    const t=(fc*spd*.014)%1;
+    const numDots=isBreak()?12:6;
+    X.fillStyle=isBreak()?'#ef4444':'#34d399';
+    const dotR=isBreak()?3:2.5;
+    // Path: top wire (left→right), right wire (top→bottom), bottom wire (right→left), left wire (bottom→top)
+    const topLen=cw, rightLen=ch-ch/2+ch/2, botLen=cw, leftLen=ch;
+    // Simplify: rectangular perimeter
+    const per=2*cw+2*ch;
+    for(let i=0;i<numDots;i++){
+      const ph=(t+i/numDots)%1;
+      const pos=ph*per;
+      let px,py;
+      if(pos<cw){px=cx+pos;py=by} // top
+      else if(pos<cw+ch/2){px=cx+cw;py=by+(pos-cw)} // right down
+      else if(pos<cw+ch){px=cx+cw;py=by+(pos-cw)} // right down continued
+      else if(pos<2*cw+ch){px=cx+cw-(pos-cw-ch);py=cy+ch} // bottom
+      else{px=cx;py=cy+ch-(pos-2*cw-ch+ch/2)} // left up
+      // Clamp
+      px=Math.max(cx,Math.min(cx+cw,px));
+      py=Math.max(by-2,Math.min(cy+ch+2,py));
+      X.beginPath();X.arc(px,py,dotR,0,Math.PI*2);X.fill();
+    }
+  }
+
+  // ── Current direction label ──
+  X.font='bold 8px JetBrains Mono';X.textAlign='center';
+  if(isBreak()){
+    X.fillStyle=`rgba(239,68,68,${.6+.3*Math.sin(fc*.1)})`;
+    X.fillText('⚠ I_BREAKDOWN ↑↑↑',cx+cw/2,by-18);
+  }else if(bias==='fwd'&&Va>0){
+    X.fillStyle='#34d399';
+    X.fillText('I →  (conventional)',cx+cw/2,by-18);
+    // Arrow on top wire
+    X.strokeStyle='#34d399';X.lineWidth=1;
+    X.beginPath();X.moveTo(cx+cw/2+40,by-3);X.lineTo(cx+cw/2+48,by);X.lineTo(cx+cw/2+40,by+3);X.stroke();
+  }else if(bias==='rev'){
+    X.fillStyle='#94a3b8';
+    X.fillText('I ≈ I₀ (leakage)',cx+cw/2,by-18);
+  }else{
+    X.fillStyle='#64748b';
+    X.fillText('I = 0 (equilibrium)',cx+cw/2,by-18);
+  }
+
+  X.restore();
+}
+
+// ── Annotations ──────────────────────────────────────────────
+function drawAnnot(){
+  if(mode!=='pn'){drawBJTAnnot();return}
+  const dc=(R.dL+R.dR)/2,my=(BT+BB)/2;
+  if(isBreak()){drawBreakVis();return}
+  X.textAlign='center';
+  if(bias==='eq'){
+    X.font='bold 8px Space Grotesk';X.fillStyle='rgba(52,211,153,.6)';
+    X.fillText('⚖ EQUILIBRIUM: J_drift + J_diff = 0 → net I = 0',dc,BT-20);
+    X.font='7px JetBrains Mono';X.fillStyle='rgba(52,211,153,.4)';
+    X.fillText('Diffusion →',R.pR-50,BT+35);X.fillText('← Diffusion',R.nL+50,BT+35);
+    X.fillStyle='rgba(251,191,36,.4)';X.fillText('← Drift | Drift →',dc,BT+35);
+    X.fillStyle='rgba(255,77,109,.35)';X.fillText('h⁺ majority',(R.pL+R.pR)/2,BB-5);
+    X.fillStyle='rgba(0,212,255,.35)';X.fillText('e⁻ majority',(R.nL+R.nR)/2,BB-5);
+  }else if(bias==='fwd'){
+    X.font='bold 8px Space Grotesk';X.fillStyle='rgba(52,211,153,.7)';
+    X.fillText(`FORWARD Vₐ=+${Va.toFixed(1)}V — Barrier↓ W_d↓ J↑↑`,dc,BT-20);
+    X.save();X.globalAlpha=.45;
+    const y1=my-18,y2=my+18;
+    X.strokeStyle='#7dd3fc';X.lineWidth=1.3;X.setLineDash([4,3]);
+    X.beginPath();X.moveTo(R.nL-8,y1);X.lineTo(R.pR+30,y1);X.stroke();X.setLineDash([]);
+    X.beginPath();X.moveTo(R.pR+30,y1);X.lineTo(R.pR+24,y1-3.5);X.lineTo(R.pR+24,y1+3.5);X.closePath();X.fillStyle='#7dd3fc';X.fill();
+    X.strokeStyle='#fda4af';X.lineWidth=1.3;X.setLineDash([4,3]);
+    X.beginPath();X.moveTo(R.pR+8,y2);X.lineTo(R.nL-30,y2);X.stroke();X.setLineDash([]);
+    X.beginPath();X.moveTo(R.nL-30,y2);X.lineTo(R.nL-24,y2-3.5);X.lineTo(R.nL-24,y2+3.5);X.closePath();X.fillStyle='#fda4af';X.fill();
+    X.restore();
+    X.font='6px JetBrains Mono';X.fillStyle='rgba(125,211,252,.5)';X.fillText('e⁻→P',R.pR+15,y1-6);
+    X.fillStyle='rgba(253,164,175,.5)';X.fillText('h⁺→N',R.nL-15,y2-6);
+    X.fillStyle='rgba(167,139,250,.35)';X.fillText('✦ recombination',R.pL+65,BT+42);
+  }else{
+    X.font='bold 8px Space Grotesk';X.fillStyle='rgba(239,68,68,.65)';
+    X.fillText(`REVERSE Vₐ=${Va.toFixed(1)}V — Barrier↑ W_d↑ I≈I₀`,dc,BT-20);
+    X.font='6px JetBrains Mono';X.fillStyle='rgba(251,191,36,.45)';
+    X.fillText('⚡ Strong E_max',dc,my-25);
+    X.fillStyle='rgba(148,163,184,.35)';X.fillText('minority drift leakage only',dc,my+30);
+  }
+}
+
+function drawBreakVis(){
+  const dc=(R.dL+R.dR)/2,my=(BT+BB)/2,vbr=Vbr(),bt=breakType();
+  const f=.06+.045*Math.sin(fc*.12);
+  X.fillStyle=`rgba(239,68,68,${f})`;X.fillRect(R.dL,BT,R.dR-R.dL,BH);
+  const ba=.45+.3*Math.sin(fc*.1);
+  X.strokeStyle=`rgba(239,68,68,${ba})`;X.lineWidth=2.5;
+  X.beginPath();X.moveTo(R.dL,BT);X.lineTo(R.dL,BB);X.stroke();
+  X.beginPath();X.moveTo(R.dR,BT);X.lineTo(R.dR,BB);X.stroke();
+  X.font='bold 9px Space Grotesk';X.textAlign='center';
+  X.fillStyle=`rgba(239,68,68,${.6+.25*Math.sin(fc*.08)})`;
+  X.fillText(`⚠ ${bt.toUpperCase()} BREAKDOWN — Vₐ=${Va.toFixed(1)}V < −V_BR=−${vbr.toFixed(1)}V`,dc,BT-24);
+  X.font='7px JetBrains Mono';X.fillStyle='rgba(239,68,68,.55)';
+  X.fillText('Uncontrolled current!',dc,BT-13);
+  // Sparks
+  const sc=Math.min(8,Math.round(2+Math.abs(Va+vbr)*1.2));
+  for(let i=0;i<sc;i++){
+    const sx=R.dL+(R.dR-R.dL)*(.1+Math.random()*.8);
+    const sy=BT+BH*(.1+Math.random()*.8);
+    const sr=1.5+Math.random()*2.5;
+    const g=X.createRadialGradient(sx,sy,0,sx,sy,sr*2.5);
+    g.addColorStop(0,`rgba(255,255,200,${.4+Math.random()*.4})`);
+    g.addColorStop(.5,`rgba(239,68,68,${.2+Math.random()*.2})`);
+    g.addColorStop(1,'rgba(239,68,68,0)');
+    X.beginPath();X.arc(sx,sy,sr*2.5,0,Math.PI*2);X.fillStyle=g;X.fill();
+  }
+  X.font='6px JetBrains Mono';X.textAlign='center';X.fillStyle='rgba(255,200,100,.5)';
+  if(bt==='Avalanche'){
+    X.fillText('Impact ionization → e⁻h⁺ cascade',dc,my-10);
+    X.fillText('V_BR ↑ with T (phonon scattering)',dc,my+2);
+  }else{
+    X.fillText('Quantum tunneling: valence→conduction',dc,my-10);
+    X.fillText('V_BR ↓ with T (Eg narrows)',dc,my+2);
+  }
+}
+
+function drawBJTAnnot(){
+  const isN=mode==='npn';
+  const b=getBJTParams();
+  X.textAlign='center';
+  const mNames={fwd_active:'FORWARD ACTIVE',saturation:'SATURATION',cutoff:'CUTOFF',rev_active:'REVERSE ACTIVE'};
+  const mClr={fwd_active:'rgba(52,211,153,.8)',saturation:'rgba(251,191,36,.8)',cutoff:'rgba(239,68,68,.7)',rev_active:'rgba(167,139,250,.7)'};
+  X.font='bold 9px Space Grotesk';X.fillStyle=mClr[bjtMode];
+  X.fillText(`${mNames[bjtMode]} — β=${b.beta} — V_BE=${VBE.toFixed(1)}V  V_CB=${VCB.toFixed(1)}V`,W/2,BT-24);
+  // Junction labels
+  const ebF=(bjtMode==='fwd_active'||bjtMode==='saturation'),cbF=(bjtMode==='saturation'||bjtMode==='rev_active');
+  X.font='7px JetBrains Mono';
+  X.fillStyle=ebF?'rgba(52,211,153,.5)':'rgba(239,68,68,.5)';X.fillText(ebF?'EB:fwd':'EB:rev',(R.d1L+R.d1R)/2,BT-5);
+  X.fillStyle=cbF?'rgba(52,211,153,.5)':'rgba(239,68,68,.5)';X.fillText(cbF?'CB:fwd':'CB:rev',(R.d2L+R.d2R)/2,BT-5);
+  // Terminal current arrows
+  const py=(BT+BB)/2,mxW=6;
+  // NPN: conventional I enters E(→), exits C(→), enters B(↓)
+  // PNP: conventional I exits E(←), enters C(←), exits B(↑)
+  const pnpFlip=isN?1:-1;
+
+  // Normalize current magnitudes for arrow thickness (1-6px)
+  const maxJ=Math.max(Math.abs(b.IE),Math.abs(b.IC),Math.abs(b.IB),1e-30);
+  const ieW=Math.max(1,Math.abs(b.IE)/maxJ*mxW);
+  X.strokeStyle='#fb923c';X.lineWidth=ieW;
+  if(pnpFlip>0){X.beginPath();X.moveTo(R.eL-5,py);X.lineTo(R.eL+22,py);X.stroke();
+    X.fillStyle='#fb923c';X.beginPath();X.moveTo(R.eL+22,py);X.lineTo(R.eL+16,py-ieW);X.lineTo(R.eL+16,py+ieW);X.closePath();X.fill();
+  }else{X.beginPath();X.moveTo(R.eL+22,py);X.lineTo(R.eL-5,py);X.stroke();
+    X.fillStyle='#fb923c';X.beginPath();X.moveTo(R.eL-5,py);X.lineTo(R.eL+1,py-ieW);X.lineTo(R.eL+1,py+ieW);X.closePath();X.fill();}
+  X.font='bold 8px JetBrains Mono';X.fillStyle='#fb923c';X.fillText('I_E',(R.eL+R.eR)/2,BB+18);
+
+  // I_C arrow
+  const icW=Math.max(1,Math.abs(b.IC)/maxJ*mxW);
+  X.strokeStyle='#34d399';X.lineWidth=icW;
+  if(pnpFlip>0){X.beginPath();X.moveTo(R.cR-22,py);X.lineTo(R.cR+5,py);X.stroke();
+    X.fillStyle='#34d399';X.beginPath();X.moveTo(R.cR+5,py);X.lineTo(R.cR-1,py-icW);X.lineTo(R.cR-1,py+icW);X.closePath();X.fill();
+  }else{X.beginPath();X.moveTo(R.cR+5,py);X.lineTo(R.cR-22,py);X.stroke();
+    X.fillStyle='#34d399';X.beginPath();X.moveTo(R.cR-22,py);X.lineTo(R.cR-16,py-icW);X.lineTo(R.cR-16,py+icW);X.closePath();X.fill();}
+  X.font='bold 8px JetBrains Mono';X.fillStyle='#34d399';X.fillText('I_C',(R.cL+R.cR)/2,BB+18);
+
+  // I_B arrow (vertical)
+  const ibW=Math.max(1,Math.abs(b.IB)/maxJ*mxW*2),bM=(R.bL+R.bR)/2;
+  X.strokeStyle='#fbbf24';X.lineWidth=ibW;
+  if(pnpFlip>0){X.beginPath();X.moveTo(bM,BT-2);X.lineTo(bM,BT+20);X.stroke();
+    X.fillStyle='#fbbf24';X.beginPath();X.moveTo(bM,BT+20);X.lineTo(bM-ibW,BT+15);X.lineTo(bM+ibW,BT+15);X.closePath();X.fill();
+  }else{X.beginPath();X.moveTo(bM,BT+20);X.lineTo(bM,BT-2);X.stroke();
+    X.fillStyle='#fbbf24';X.beginPath();X.moveTo(bM,BT-2);X.lineTo(bM-ibW,BT+3);X.lineTo(bM+ibW,BT+3);X.closePath();X.fill();}
+  X.font='bold 8px JetBrains Mono';X.fillStyle='#fbbf24';X.fillText('I_B',bM,BB+18);
+  // Mode-specific carrier flow
+  const cc=isN?'#7dd3fc':'#fda4af';
+  if(bjtMode==='fwd_active'){
+    X.save();X.globalAlpha=.4;X.strokeStyle=cc;X.lineWidth=2.5;X.setLineDash([8,4]);
+    X.beginPath();X.moveTo(R.eR-12,py);X.lineTo(R.cL+12,py);X.stroke();X.setLineDash([]);
+    X.beginPath();X.moveTo(R.cL+12,py);X.lineTo(R.cL+6,py-5);X.lineTo(R.cL+6,py+5);X.closePath();X.fillStyle=cc;X.fill();X.restore();
+    X.font='6px JetBrains Mono';X.fillStyle='rgba(167,139,250,.4)';X.fillText('few ✦ recombine (I_B)',bM,py+14);
+  }else if(bjtMode==='saturation'){
+    X.save();X.globalAlpha=.3;X.strokeStyle=cc;X.lineWidth=2;X.setLineDash([6,4]);
+    X.beginPath();X.moveTo(R.eR,py-8);X.lineTo(R.bR,py-8);X.stroke();
+    X.strokeStyle=isN?'#93c5fd':'#fecdd3';X.beginPath();X.moveTo(R.cL,py+8);X.lineTo(R.bL,py+8);X.stroke();
+    X.setLineDash([]);X.restore();
+    X.font='6px JetBrains Mono';X.fillStyle='rgba(251,191,36,.5)';X.fillText('V_CE≈0.2V · Both inject · Switch ON',W/2,BT-13);
+  }else if(bjtMode==='cutoff'){
+    X.font='7px JetBrains Mono';X.fillStyle='rgba(239,68,68,.4)';X.fillText('No injection — leakage only · Switch OFF',W/2,py);
+  }else{
+    X.save();X.globalAlpha=.4;X.strokeStyle=isN?'#93c5fd':'#fecdd3';X.lineWidth=2;X.setLineDash([8,4]);
+    X.beginPath();X.moveTo(R.cL+12,py);X.lineTo(R.eR-12,py);X.stroke();X.setLineDash([]);
+    X.beginPath();X.moveTo(R.eR-12,py);X.lineTo(R.eR-6,py-5);X.lineTo(R.eR-6,py+5);X.closePath();
+    X.fillStyle=isN?'#93c5fd':'#fecdd3';X.fill();X.restore();
+    X.font='6px JetBrains Mono';X.fillStyle='rgba(167,139,250,.5)';
+    X.fillText(isN?'e⁻: C→B→E (reversed)':'h⁺: C→B→E (reversed)',W/2,BT-13);
+    X.fillText('low β_R — collector not optimized for injection',W/2,py+14);
+  }
+  X.font='7px JetBrains Mono';X.fillStyle='rgba(148,163,184,.4)';X.fillText('I_E = I_B + I_C',W/2,BB+28);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+function frame(){
+  fc++;calcR();drawBg();
+  if(mode==='pn') drawPN(); else drawBJT();
+  [...elec,...hole,...injE,...injH].forEach(c=>{c.update();if(c.alive)c.draw()});
+  elec=elec.filter(c=>c.alive);hole=hole.filter(c=>c.alive);
+  injE=injE.filter(c=>c.alive);injH=injH.filter(c=>c.alive);
+  for(let i=flashes.length-1;i>=0;i--){flashes[i].update();flashes[i].draw();if(flashes[i].done)flashes.splice(i,1)}
+  tryInj();tryBreakGen();maintain();
+  drawIVGraph();drawBands();drawProfiles();drawEFieldGraph();drawCircuit();drawAnnot();
+  if(expandedGraph) drawBigGraph();
+  if(playing) anim=requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UI HANDLERS
+// ═══════════════════════════════════════════════════════════════
+function setMode(m){
+  mode=m;
+  document.getElementById('tabPN').classList.toggle('on',m==='pn');
+  document.getElementById('tabPNP').classList.toggle('on',m==='pnp');
+  document.getElementById('tabNPN').classList.toggle('on',m==='npn');
+  const bjt=m!=='pn';
+  ['boxBeta','boxAlpha','boxReg','boxWb','boxIe','boxIb','boxIc'].forEach(id=>document.getElementById(id).style.display=bjt?'':'none');
+  document.getElementById('c5pn').style.display=bjt?'none':'';
+  document.getElementById('c5bjt').style.display=bjt?'':'none';
+  document.getElementById('pnBiasRow').style.display=bjt?'none':'';
+  document.getElementById('bjtModeRow').style.display=bjt?'':'none';
+  document.getElementById('wbBox').style.display=bjt?'':'none';
+  document.getElementById('pnVaRow').style.display=bjt?'none':'';
+  document.getElementById('bjtVaRow').style.display=bjt?'':'none';
+  if(bjt) setBJTMode('fwd_active');
+  resetSim();
+}
+function setBJTMode(m){
+  bjtMode=m;
+  ['mFwdAct','mSat','mCut','mRevAct'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const btnMap={fwd_active:'mFwdAct',saturation:'mSat',cutoff:'mCut',rev_active:'mRevAct'};
+  document.getElementById(btnMap[m]).classList.add('on');
+  // Set sliders to mode-appropriate defaults (user can fine-tune after)
+  const presets={
+    fwd_active:{vbe:0.6,vcb:-5},
+    saturation:{vbe:0.7,vcb:0.3},
+    cutoff:{vbe:-1,vcb:-1},
+    rev_active:{vbe:-1,vcb:0.6}
+  };
+  const p=presets[m];
+  VBE=p.vbe;VCB=p.vcb;
+  document.getElementById('slVbe').value=Math.round(VBE*10);
+  document.getElementById('slVcb').value=Math.round(VCB*10);
+  document.getElementById('vVbe').textContent=(VBE>=0?'+':'')+VBE.toFixed(1)+' V';
+  document.getElementById('vVcb').textContent=(VCB>=0?'+':'')+VCB.toFixed(1)+' V';
+  // Bias state for PN compatibility
+  if(VBE>0.05) bias='fwd'; else bias='rev';
+  injE=[];injH=[];
+  // Update info card
+  const descs={
+    fwd_active:'<b>Forward Active</b> — EBJ forward biased, CBJ reverse biased. Electrons injected from emitter diffuse through thin base; most reach collector (I_C≈βI_B). Normal amplification mode.',
+    saturation:'<b>Saturation</b> — Both junctions forward biased. Large base current, V_CE≈0.2V. Collector and emitter both inject into base. β relationship breaks down. Switch ON state.',
+    cutoff:'<b>Cutoff</b> — Both junctions reverse biased. No carrier injection, only leakage (I_CEO). Both depletion regions wide. Switch OFF state.',
+    rev_active:'<b>Reverse Active</b> — EBJ reverse, CBJ forward. Collector acts as emitter (swapped roles). Much lower β_R. Rarely used in practice.'
+  };
+  document.getElementById('bjtModeDesc').innerHTML=descs[m];
+  resetSim();
+}
+function updBjtV(){
+  VBE=parseInt(document.getElementById('slVbe').value)/10;
+  VCB=parseInt(document.getElementById('slVcb').value)/10;
+  document.getElementById('vVbe').textContent=(VBE>=0?'+':'')+VBE.toFixed(1)+' V';
+  document.getElementById('vVcb').textContent=(VCB>=0?'+':'')+VCB.toFixed(1)+' V';
+  // Auto-detect mode from slider values
+  if(VBE>0.05&&VCB<-0.05) bjtMode='fwd_active';
+  else if(VBE>0.05&&VCB>0.05) bjtMode='saturation';
+  else if(VBE<-0.05&&VCB<-0.05) bjtMode='cutoff';
+  else if(VBE<-0.05&&VCB>0.05) bjtMode='rev_active';
+  ['mFwdAct','mSat','mCut','mRevAct'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const btnMap={fwd_active:'mFwdAct',saturation:'mSat',cutoff:'mCut',rev_active:'mRevAct'};
+  document.getElementById(btnMap[bjtMode]).classList.add('on');
+  if(VBE>0.05) bias='fwd'; else bias='rev';
+  injE=[];injH=[]; // clear injected carriers — bias changed
+  updParams();
+}
+function updWb(){
+  const v=parseInt(document.getElementById('slWb').value);
+  WB=v*0.1e-4; // slider 1-50 → 0.1μm to 5.0μm
+  document.getElementById('vWb').textContent=(WB*1e4).toFixed(1)+' μm';
+  updParams();
+}
+function setBias(b){
+  bias=b;
+  document.getElementById('bEq').classList.toggle('on',b==='eq');
+  document.getElementById('bFwd').classList.toggle('on',b==='fwd');
+  document.getElementById('bRev').classList.toggle('on',b==='rev');
+  if(b==='eq'){Va=0;document.getElementById('slVa').value=0}
+  else if(b==='fwd'){Va=.5;document.getElementById('slVa').value=5}
+  else{Va=-5;document.getElementById('slVa').value=-50}
+  updVa();injE=[];injH=[];
+}
+function updVa(){
+  Va=parseInt(document.getElementById('slVa').value)/10;
+  document.getElementById('vVa').textContent=Va.toFixed(1)+' V';
+  if(Va>.01)bias='fwd';else if(Va<-.01)bias='rev';else bias='eq';
+  document.getElementById('bEq').classList.toggle('on',bias==='eq');
+  document.getElementById('bFwd').classList.toggle('on',bias==='fwd');
+  document.getElementById('bRev').classList.toggle('on',bias==='rev');
+  updParams();
+}
+function updDoping(){
+  const a=parseFloat(document.getElementById('slNa').value);
+  const d=parseFloat(document.getElementById('slNd').value);
+  Na=Math.pow(10,a);Nd=Math.pow(10,d);
+  document.getElementById('vNa').textContent='10'+sup(a%1===0?a.toFixed(0):a.toFixed(1))+' cm⁻³';
+  document.getElementById('vNd').textContent='10'+sup(d%1===0?d.toFixed(0):d.toFixed(1))+' cm⁻³';
+  updParams();initP();
+}
+function updSpd(){
+  const map=[.25,.5,1,2,3,4,5],lbl=['0.25x','0.5x','1x','2x','3x','4x','5x'];
+  const v=parseInt(document.getElementById('slSpd').value);
+  spd=map[v];document.getElementById('vSpd').textContent=lbl[v];
+}
+function togPlay(){
+  playing=!playing;
+  document.getElementById('btnPlay').textContent=playing?'⏸ Pause':'▶ Play';
+  document.getElementById('btnPlay').classList.toggle('on',playing);
+  if(playing)frame();else cancelAnimationFrame(anim);
+}
+function togTemp(){
+  hiT=!hiT;
+  document.getElementById('btnTemp').textContent=hiT?'🌡️ 450K 🔥':'🌡️ 300K';
+  document.getElementById('btnTemp').classList.toggle('on',hiT);
+  updParams();
+}
+function resetSim(){injTmr=0;initP();updParams()}
+
+function updParams(){
+  const isBJT=mode!=='pn';
+  const vApplied=isBJT?VBE:Va;
+  const t=Temp(),n=ni(),v0=V0(),vbr=Vbr();
+  const mob=getMobility(),df=getDiff();
+  document.getElementById('dTemp').textContent='T = '+t+' K';
+  document.getElementById('pV0').textContent=v0.toFixed(3)+' V';
+  document.getElementById('pNi').textContent=fmtS(n,'cm⁻³');
+  document.getElementById('pMu').textContent=Math.round(mob.mun)+' / '+Math.round(mob.mup);
+  document.getElementById('pDn').textContent=df.Dn.toFixed(1)+' / '+df.Dp.toFixed(1);
+
+  if(isBJT){
+    // Show EB junction params + CB junction params
+    const wdEB=Wd(VBE), wdCB=Wd(VCB);
+    const emEB=Emax(VBE), emCB=Emax(VCB);
+    document.getElementById('pVa').textContent='V_BE='+VBE.toFixed(1)+' / V_CB='+VCB.toFixed(1);
+    document.getElementById('pBar').textContent=(v0-VBE).toFixed(2)+' / '+(v0-VCB).toFixed(2)+' V';
+    document.getElementById('pWd').textContent=(wdEB*1e4).toFixed(2)+'/'+(wdCB*1e4).toFixed(2)+' μm';
+    document.getElementById('pEmax').textContent=fmtS(Math.max(emEB,emCB),'V/cm');
+    document.getElementById('pCj').textContent=fmtS(Cj(VBE),'')+'/ '+fmtS(Cj(VCB),'F/cm²');
+    document.getElementById('pVbr').textContent='−'+vbr.toFixed(1)+' V ('+breakType()+')';
+    document.getElementById('pVbr').style.color='#94a3b8';
+    // J from EB junction (Shockley)
+    const j=getJ(VBE);
+    if(Math.abs(j)<1e-12){document.getElementById('pJ').textContent='≈ 0';document.getElementById('pJ').style.color='#34d399'}
+    else{document.getElementById('pJ').textContent=fmtS(j,'A/cm²');document.getElementById('pJ').style.color=j>0?'#34d399':'#94a3b8'}
+    // BJT specific
+    const b=getBJTParams();
+    document.getElementById('pBeta').textContent='β='+b.beta+(bjtMode==='rev_active'?' (βᵣ)':'');
+    document.getElementById('pAlpha').textContent=b.gamma.toFixed(3)+' / '+b.alphaT.toFixed(4);
+    document.getElementById('pWb').textContent=(WB*1e4).toFixed(1)+' μm (L='+b.LnB_um.toFixed(0)+'μm)';
+    const modeNames={fwd_active:'Fwd Active',saturation:'Saturation',cutoff:'Cutoff',rev_active:'Rev Active'};
+    const modeColors={fwd_active:'#34d399',saturation:'#fbbf24',cutoff:'#ef4444',rev_active:'#a78bfa'};
+    document.getElementById('pReg').textContent=modeNames[bjtMode];
+    document.getElementById('pReg').style.color=modeColors[bjtMode];
+    document.getElementById('pIe').textContent=fmtS(b.IE,'A/cm²');
+    document.getElementById('pIb').textContent=fmtS(b.IB,'A/cm²');
+    document.getElementById('pIc').textContent=fmtS(b.IC,'A/cm²');
+  }else{
+    // PN junction mode
+    const bar=v0-Va,wd=Wd(Va),em=Emax(Va),j=getJ(Va),cj=Cj(Va);
+    document.getElementById('pVa').textContent='Vₐ='+Va.toFixed(1)+' V';
+    document.getElementById('pBar').textContent=bar.toFixed(3)+' V';
+    document.getElementById('pWd').textContent=(wd*1e4).toFixed(3)+' μm';
+    document.getElementById('pEmax').textContent=fmtS(em,'V/cm');
+    document.getElementById('pCj').textContent=fmtS(cj,'F/cm²');
+    document.getElementById('pVbr').textContent='−'+vbr.toFixed(1)+' V ('+breakType()+')';
+    document.getElementById('pVbr').style.color=isBreak()?'#ef4444':'#94a3b8';
+    if(isBreak()){document.getElementById('pJ').textContent='⚠ BREAKDOWN';document.getElementById('pJ').style.color='#ef4444'}
+    else if(Math.abs(j)<1e-12){document.getElementById('pJ').textContent='≈ 0 A/cm²';document.getElementById('pJ').style.color='#34d399'}
+    else{document.getElementById('pJ').textContent=fmtS(j,'A/cm²');document.getElementById('pJ').style.color=j>0?'#34d399':'#94a3b8'}
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRAPH EXPAND / COLLAPSE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+const gBig=document.getElementById('gBig'), cBig=gBig.getContext('2d');
+const overlay=document.getElementById('graphOverlay');
+const careaMain=document.getElementById('careaMain');
+let expandedGraph=null; // 'iv','band','rho','efield' or null
+
+function openGraph(which){
+  expandedGraph=which;
+  careaMain.classList.add('hidden');
+  overlay.classList.add('open');
+  drawBigGraph();
+}
+function closeGraph(){
+  expandedGraph=null;
+  overlay.classList.remove('open');
+  careaMain.classList.remove('hidden');
+}
+// Click outside close: click on the overlay canvas background itself closes
+gBig.addEventListener('click',function(e){
+  // Only close if clicking the very edge area (not the graph content)
+  // Actually let's not close on canvas click — only the × button closes
+});
+// Also close on Escape key
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&expandedGraph)closeGraph()});
+
+function drawBigGraph(){
+  if(!expandedGraph)return;
+  const c=cBig, w=gBig.width, h=gBig.height;
+  c.fillStyle='#0d1117';c.fillRect(0,0,w,h);
+  c.strokeStyle='#38bdf8';c.lineWidth=2;c.strokeRect(1,1,w-2,h-2);
+
+  if(expandedGraph==='iv') drawBigIV(c,w,h);
+  else if(expandedGraph==='band') drawBigBand(c,w,h);
+  else if(expandedGraph==='rho'){if(mode!=='pn') drawBigBJTTransfer(c,w,h); else drawBigRho(c,w,h)}
+  else if(expandedGraph==='efield'){if(mode!=='pn') drawBigBJTOutput(c,w,h); else drawBigEField(c,w,h)}
+}
+
+// ── BIG I-V ──────────────────────────────────────────────────
+function drawBigIV(c,w,h){
+  c.font='bold 20px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('I-V Characteristic — Shockley Diode Equation',w/2,35);
+  c.font='12px JetBrains Mono';c.fillStyle='#64748b';
+  c.fillText('J = J₀ · (e^(V/V_T) − 1)',w/2,55);
+
+  const ox=120,oy=h-80,axW=w-200,axH=h-160;
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke();
+  c.beginPath();c.moveTo(ox,oy+10);c.lineTo(ox,oy-axH);c.stroke();
+  // Labels
+  c.font='14px JetBrains Mono';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Voltage V (Volt)',ox+axW/2,h-25);
+  c.save();c.translate(30,oy-axH/2);c.rotate(-Math.PI/2);c.fillText('Current Density J (A/cm²)',0,0);c.restore();
+  // Ticks
+  c.font='11px JetBrains Mono';c.fillStyle='#64748b';
+  const vMin=-1.0,vMax=1.0;
+  for(let v=vMin;v<=vMax;v+=0.2){
+    const px=ox+(v-vMin)/(vMax-vMin)*axW;
+    c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+5);c.strokeStyle='#334155';c.lineWidth=1;c.stroke();
+    if(Math.abs(v*10-Math.round(v*10))<0.01) c.fillText(v.toFixed(1),px,oy+20);
+  }
+  // Grid
+  c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=.5;
+  for(let v=vMin;v<=vMax;v+=0.2){const px=ox+(v-vMin)/(vMax-vMin)*axW;c.beginPath();c.moveTo(px,oy-axH);c.lineTo(px,oy);c.stroke()}
+  for(let i=0;i<=4;i++){const py=oy-i/4*axH;c.beginPath();c.moveTo(ox,py);c.lineTo(ox+axW,py);c.stroke()}
+
+  // V=0 line
+  const zx=ox+(0-vMin)/(vMax-vMin)*axW;
+  c.strokeStyle='rgba(255,255,255,.08)';c.lineWidth=1;c.setLineDash([6,4]);
+  c.beginPath();c.moveTo(zx,oy-axH);c.lineTo(zx,oy);c.stroke();c.setLineDash([]);
+
+  // Plot curve
+  const jRef=Math.max(Math.abs(getJ(0.7)),1e-15);
+  c.strokeStyle='#34d399';c.lineWidth=3;c.beginPath();
+  let first=true;
+  for(let v=vMin;v<=vMax;v+=0.005){
+    const j=getJ(v);
+    const jN=Math.min(1.1,Math.max(-0.15,j/jRef));
+    const px=ox+(v-vMin)/(vMax-vMin)*axW;
+    const py=Math.max(oy-axH-5,Math.min(oy+5,oy-jN*axH));
+    if(first){c.moveTo(px,py);first=false}else c.lineTo(px,py);
+  }
+  c.stroke();
+
+  // Operating point
+  const vOpBig=mode!=='pn'?VBE:Va;
+  if(vOpBig>=vMin&&vOpBig<=vMax){
+    const cpx=ox+(vOpBig-vMin)/(vMax-vMin)*axW;
+    const cpJ=getJ(vOpBig);
+    const cpN=Math.min(1.1,Math.max(-0.15,cpJ/jRef));
+    const cpy=Math.max(oy-axH-5,Math.min(oy+5,oy-cpN*axH));
+    // Dashed lines
+    c.strokeStyle='rgba(251,191,36,.35)';c.lineWidth=1;c.setLineDash([5,4]);
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(cpx,oy);c.stroke();
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(ox,cpy);c.stroke();c.setLineDash([]);
+    // Point
+    c.beginPath();c.arc(cpx,cpy,8,0,Math.PI*2);
+    c.fillStyle='#fbbf24';c.fill();c.strokeStyle='#92400e';c.lineWidth=2;c.stroke();
+    c.font='bold 12px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+    c.fillText((mode!=='pn'?'V_BE=':'Vₐ=')+vOpBig.toFixed(1)+' V',cpx+14,cpy-8);
+    const jVal=getJ(vOpBig);
+    if(Math.abs(jVal)>1e-20) c.fillText(`J = ${fmtS(jVal,'A/cm²')}`,cpx+14,cpy+8);
+  }
+  // Breakdown
+  if(isBreak()){
+    c.font='bold 16px JetBrains Mono';c.fillStyle='rgba(239,68,68,.85)';c.textAlign='center';
+    c.fillText('⚠ BREAKDOWN REGION',w/2,85);
+  }
+  // VBR marker
+  const vbr=Vbr();
+  if(vbr<Math.abs(vMin)*10){
+    const bx=ox+(-vbr-vMin)/(vMax-vMin)*axW;
+    if(bx>ox){
+      c.strokeStyle='rgba(239,68,68,.4)';c.lineWidth=1;c.setLineDash([4,3]);
+      c.beginPath();c.moveTo(bx,oy-axH);c.lineTo(bx,oy);c.stroke();c.setLineDash([]);
+      c.font='10px JetBrains Mono';c.fillStyle='#ef4444';c.textAlign='center';
+      c.fillText(`−V_BR=${vbr.toFixed(1)}V`,bx,oy-axH-6);
+    }
+  }
+  // Close hint
+  c.font='10px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('ESC veya × ile kapat',w-20,h-10);
+}
+
+// ── BIG ENERGY BAND ──────────────────────────────────────────
+function drawBigBand(c,w,h){
+  c.font='bold 20px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('Energy Band Diagram',w/2,35);
+
+  const vBandB=mode!=='pn'?VBE:Va;
+  const v0=V0(),bar=Math.max(0,Math.min(2.5,v0-vBandB));
+  const mx=w/2,padX=80,padT=70,padB=60;
+  const bandH=h-padT-padB,bandMid=padT+bandH/2;
+  const ecPy=bandMid-55,evPy=bandMid+55;
+  const drop=Math.min(bar*70,bandH*0.42);
+  const ecNy=ecPy+drop,evNy=evPy+drop;
+
+  // Band gap shading
+  c.fillStyle='rgba(251,191,36,.03)';
+  c.fillRect(padX,ecPy,mx-padX-20,evPy-ecPy);
+  c.fillRect(mx+20,ecNy,w-padX-mx-20,evNy-ecNy);
+
+  // Ec
+  c.strokeStyle='#00d4ff';c.lineWidth=3.5;
+  c.beginPath();c.moveTo(padX,ecPy);c.bezierCurveTo(mx-40,ecPy,mx+40,ecNy,w-padX,ecNy);c.stroke();
+  // Ev
+  c.strokeStyle='#ff4d6d';c.lineWidth=3.5;
+  c.beginPath();c.moveTo(padX,evPy);c.bezierCurveTo(mx-40,evPy,mx+40,evNy,w-padX,evNy);c.stroke();
+
+  // Fermi levels
+  c.strokeStyle='#22c55e';c.lineWidth=2;c.setLineDash([8,5]);
+  if(Math.abs(mode!=="pn"?VBE:Va)<0.02){
+    const ef=(ecPy+evPy)/2+drop*.3;
+    c.beginPath();c.moveTo(padX,ef);c.lineTo(w-padX,ef);c.stroke();
+    c.font='14px JetBrains Mono';c.fillStyle='#22c55e';c.textAlign='left';
+    c.fillText('E_F',w-padX+8,ef+4);
+  }else{
+    const efP=(ecPy+evPy)/2+drop*.12;
+    const efN=(ecNy+evNy)/2-drop*.12;
+    c.beginPath();c.moveTo(padX,efP);c.lineTo(mx-30,efP);c.stroke();
+    c.beginPath();c.moveTo(mx+30,efN);c.lineTo(w-padX,efN);c.stroke();
+    c.font='13px JetBrains Mono';c.fillStyle='#22c55e';c.textAlign='left';
+    c.fillText('E_Fp',padX+5,efP-8);c.textAlign='right';c.fillText('E_Fn',w-padX-5,efN-8);
+  }
+  c.setLineDash([]);
+
+  // Barrier arrow
+  if(drop>8){
+    c.strokeStyle='#fbbf24';c.lineWidth=1.5;c.setLineDash([4,3]);
+    c.beginPath();c.moveTo(mx+60,ecPy);c.lineTo(mx+60,ecNy);c.stroke();c.setLineDash([]);
+    c.fillStyle='#fbbf24';
+    c.beginPath();c.moveTo(mx+60,ecPy);c.lineTo(mx+56,ecPy+8);c.lineTo(mx+64,ecPy+8);c.closePath();c.fill();
+    c.beginPath();c.moveTo(mx+60,ecNy);c.lineTo(mx+56,ecNy-8);c.lineTo(mx+64,ecNy-8);c.closePath();c.fill();
+    c.font='14px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+    c.fillText(`q(V₀−Vₐ) = ${bar.toFixed(3)} eV`,mx+72,(ecPy+ecNy)/2+4);
+  }
+
+  // Eg annotation
+  c.strokeStyle='rgba(251,191,36,.3)';c.lineWidth=1;c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(padX+30,ecPy);c.lineTo(padX+30,evPy);c.stroke();c.setLineDash([]);
+  c.font='12px JetBrains Mono';c.fillStyle='rgba(251,191,36,.5)';c.textAlign='left';
+  c.fillText('Eg = 1.12 eV',padX+36,(ecPy+evPy)/2+4);
+
+  // Band labels
+  c.font='16px JetBrains Mono';c.textAlign='left';
+  c.fillStyle='#00d4ff';c.fillText('Ec (conduction)',padX+5,ecPy-12);
+  c.fillStyle='#ff4d6d';c.fillText('Ev (valence)',padX+5,evPy+22);
+
+  // Region labels
+  c.font='bold 18px Space Grotesk';c.textAlign='center';
+  c.fillStyle='#ff4d6d';c.fillText('P-Type',padX+80,h-20);
+  c.fillStyle='#fbbf24';c.fillText('Junction',mx,h-20);
+  c.fillStyle='#00d4ff';c.fillText('N-Type',w-padX-80,h-20);
+
+  // Info
+  c.font='11px JetBrains Mono';c.fillStyle='#475569';c.textAlign='center';
+  c.fillText(`V₀ = ${V0().toFixed(3)} V    V = ${(mode!=="pn"?VBE:Va).toFixed(1)} V    Barrier = ${bar.toFixed(3)} eV`,w/2,55);
+  c.font='10px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('ESC veya × ile kapat',w-20,h-10);
+}
+
+// ── BIG CHARGE DENSITY ───────────────────────────────────────
+function drawBigRho(c,w,h){
+  if(mode!=='pn'){drawBigBJTTransfer(c,w,h);return}
+  c.font='bold 20px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('Charge Density ρ(x)',w/2,35);
+
+  const padX=100,padT=70,padB=60;
+  const axW=w-2*padX,axH=h-padT-padB;
+  const midY=padT+axH/2;
+
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(padX,midY);c.lineTo(padX+axW,midY);c.stroke();
+  c.beginPath();c.moveTo(padX,padT);c.lineTo(padX,padT+axH);c.stroke();
+
+  // Map depletion edges
+  const dLf=R.dL/W,dRf=R.dR/W,jf=R.jx/W;
+  const dLpx=padX+dLf*axW,dRpx=padX+dRf*axW,jpx=padX+jf*axW;
+  const halfH=axH/2-15;
+  const naH=halfH*Math.min(1,Na/Math.max(Na,Nd));
+  const ndH=halfH*Math.min(1,Nd/Math.max(Na,Nd));
+
+  // −qNa fill
+  c.fillStyle='rgba(59,130,246,.10)';c.fillRect(dLpx,midY,jpx-dLpx,naH);
+  c.strokeStyle='#3b82f6';c.lineWidth=3;
+  c.beginPath();c.moveTo(padX,midY);c.lineTo(dLpx,midY);c.lineTo(dLpx,midY+naH);c.lineTo(jpx,midY+naH);c.lineTo(jpx,midY);c.stroke();
+
+  // +qNd fill
+  c.fillStyle='rgba(239,68,68,.10)';c.fillRect(jpx,midY-ndH,dRpx-jpx,ndH);
+  c.strokeStyle='#ef4444';c.lineWidth=3;
+  c.beginPath();c.moveTo(jpx,midY);c.lineTo(jpx,midY-ndH);c.lineTo(dRpx,midY-ndH);c.lineTo(dRpx,midY);c.lineTo(padX+axW,midY);c.stroke();
+
+  // Labels
+  c.font='14px JetBrains Mono';
+  c.fillStyle='#3b82f6';c.textAlign='center';c.fillText('−qNₐ',(dLpx+jpx)/2,midY+naH+22);
+  c.fillStyle='#ef4444';c.fillText('+qNᴅ',(jpx+dRpx)/2,midY-ndH-10);
+
+  // Depletion markers
+  c.strokeStyle='rgba(251,191,36,.3)';c.lineWidth=1;c.setLineDash([5,4]);
+  [dLpx,dRpx,jpx].forEach(px=>{c.beginPath();c.moveTo(px,padT);c.lineTo(px,padT+axH);c.stroke()});
+  c.setLineDash([]);
+  c.font='11px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+  c.fillText('x_p',dLpx,padT+axH+18);c.fillText('x_n',dRpx,padT+axH+18);c.fillText('junction',jpx,padT-8);
+
+  // Axis labels
+  c.font='14px JetBrains Mono';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Position x',padX+axW/2,h-18);
+  c.save();c.translate(30,midY);c.rotate(-Math.PI/2);c.fillText('ρ(x)',0,0);c.restore();
+
+  // Region labels
+  c.font='bold 14px Space Grotesk';
+  c.fillStyle='#ff4d6d';c.fillText('P',padX+30,padT-8);
+  c.fillStyle='#00d4ff';c.fillText('N',padX+axW-30,padT-8);
+
+  // Formula
+  c.font='12px JetBrains Mono';c.fillStyle='#475569';c.textAlign='center';
+  c.fillText('Charge neutrality: Nₐ · x_p = Nᴅ · x_n',w/2,55);
+  c.font='10px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('ESC veya × ile kapat',w-20,h-10);
+}
+
+// ── BIG E-FIELD ──────────────────────────────────────────────
+function drawBigEField(c,w,h){
+  if(mode!=='pn'){drawBigBJTOutput(c,w,h);return}
+  c.font='bold 20px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('Electric Field E(x)',w/2,35);
+
+  const padX=100,padT=70,padB=60;
+  const axW=w-2*padX,axH=h-padT-padB;
+  const baseY=padT+axH;
+
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(padX,baseY);c.lineTo(padX+axW,baseY);c.stroke();
+  c.beginPath();c.moveTo(padX,padT);c.lineTo(padX,baseY);c.stroke();
+
+  // Map depletion
+  const dLf=R.dL/W,dRf=R.dR/W,jf=R.jx/W;
+  const dLpx=padX+dLf*axW,dRpx=padX+dRf*axW,jpx=padX+jf*axW;
+  const ePeakH=axH*0.85;
+
+  // Fill
+  c.fillStyle='rgba(251,191,36,.07)';
+  c.beginPath();c.moveTo(dLpx,baseY);c.lineTo(jpx,baseY-ePeakH);c.lineTo(dRpx,baseY);c.closePath();c.fill();
+
+  // Triangle
+  c.strokeStyle='#fbbf24';c.lineWidth=3.5;
+  c.beginPath();c.moveTo(padX,baseY);c.lineTo(dLpx,baseY);c.lineTo(jpx,baseY-ePeakH);c.lineTo(dRpx,baseY);c.lineTo(padX+axW,baseY);c.stroke();
+
+  // E_max label
+  c.strokeStyle='rgba(251,191,36,.35)';c.lineWidth=1;c.setLineDash([5,4]);
+  c.beginPath();c.moveTo(jpx,baseY);c.lineTo(jpx,baseY-ePeakH);c.stroke();c.setLineDash([]);
+  const emVal=Emax(Va);
+  c.font='14px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+  c.fillText(`E_max = ${fmtS(emVal,'V/cm')}`,jpx+15,baseY-ePeakH+5);
+
+  // Direction arrow
+  c.strokeStyle='rgba(251,191,36,.6)';c.lineWidth=2;
+  const ay=baseY-ePeakH*0.5;
+  c.beginPath();c.moveTo(jpx+40,ay);c.lineTo(jpx-40,ay);c.stroke();
+  c.fillStyle='rgba(251,191,36,.6)';
+  c.beginPath();c.moveTo(jpx-40,ay);c.lineTo(jpx-28,ay-6);c.lineTo(jpx-28,ay+6);c.closePath();c.fill();
+  c.font='12px JetBrains Mono';c.fillStyle='rgba(251,191,36,.6)';c.textAlign='center';
+  c.fillText('E direction: N → P',jpx,ay+22);
+
+  // Depletion markers
+  c.strokeStyle='rgba(251,191,36,.25)';c.lineWidth=1;c.setLineDash([5,4]);
+  [dLpx,dRpx].forEach(px=>{c.beginPath();c.moveTo(px,padT);c.lineTo(px,baseY);c.stroke()});
+  c.setLineDash([]);
+  c.font='11px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+  c.fillText('x_p',dLpx,baseY+18);c.fillText('x_n',dRpx,baseY+18);
+
+  // Axis labels
+  c.font='14px JetBrains Mono';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('Position x',padX+axW/2,h-18);
+  c.save();c.translate(30,baseY-axH/2);c.rotate(-Math.PI/2);c.fillText('|E(x)| (V/cm)',0,0);c.restore();
+
+  // Region labels
+  c.font='bold 14px Space Grotesk';
+  c.fillStyle='#ff4d6d';c.textAlign='center';c.fillText('P',padX+30,padT-8);
+  c.fillStyle='#00d4ff';c.fillText('N',padX+axW-30,padT-8);
+
+  // Formula
+  c.font='12px JetBrains Mono';c.fillStyle='#475569';c.textAlign='center';
+  c.fillText('E_max = 2(V₀ − Vₐ) / W_d',w/2,55);
+  c.font='10px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('ESC veya × ile kapat',w-20,h-10);
+}
+
+// ── BIG BJT Transfer: IC vs VBE (1400×610) ───────────────────
+function drawBigBJTTransfer(c,w,h){
+  c.font='bold 22px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('BJT Transfer Characteristic: I_C vs V_BE',w/2,35);
+  const b=getBJTParams();
+  c.font='12px JetBrains Mono';c.fillStyle='#64748b';
+  c.fillText(`β = ${b.beta}   γ = ${b.gamma.toFixed(3)}   α_T = ${b.alphaT.toFixed(4)}   W_B = ${(WB*1e4).toFixed(1)} μm`,w/2,58);
+  const padX=120,padT=75,padB=65;
+  const axW=w-padX-50,axH=h-padT-padB;
+  const ox=padX,oy=padT+axH;
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke();
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,padT);c.stroke();
+  c.font='14px JetBrains Mono';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('V_BE (Volt)',ox+axW/2,h-20);
+  c.save();c.translate(35,padT+axH/2);c.rotate(-Math.PI/2);c.fillText('I_C (A/cm²)',0,0);c.restore();
+  // Ticks
+  c.fillStyle='#64748b';c.font='11px JetBrains Mono';
+  for(let v=0;v<=1;v+=0.1){const px=ox+v*axW;c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+5);c.strokeStyle='#334155';c.stroke();if(Math.round(v*10)%2===0)c.fillText(v.toFixed(1),px,oy+18)}
+  // Grid
+  c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=.5;
+  for(let v=0;v<=1;v+=0.1){const px=ox+v*axW;c.beginPath();c.moveTo(px,padT);c.lineTo(px,oy);c.stroke()}
+  for(let i=0;i<=4;i++){const py=oy-i/4*axH;c.beginPath();c.moveTo(ox,py);c.lineTo(ox+axW,py);c.stroke()}
+  // IC curve
+  const j0=J0val(),vt=VT();
+  const jMax=Math.max(j0*Math.exp(Math.min(0.8/vt,35)),1e-10);
+  c.strokeStyle='#34d399';c.lineWidth=3;c.beginPath();
+  let first=true;
+  for(let v=0;v<=1;v+=0.003){
+    const ic=j0*(Math.exp(Math.min(v/vt,35))-1);
+    const norm=Math.min(1,ic/jMax);
+    const px=ox+v*axW,py=oy-norm*axH;
+    if(first){c.moveTo(px,py);first=false}else c.lineTo(px,py);
+  }
+  c.stroke();
+  // Operating point
+  if(VBE>=0&&VBE<=1){
+    const icOp=j0*(Math.exp(Math.min(VBE/vt,35))-1);
+    const normOp=Math.min(1,icOp/jMax);
+    const cpx=ox+VBE*axW,cpy=oy-normOp*axH;
+    c.strokeStyle='rgba(251,191,36,.35)';c.lineWidth=1;c.setLineDash([5,4]);
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(cpx,oy);c.stroke();
+    c.beginPath();c.moveTo(cpx,cpy);c.lineTo(ox,cpy);c.stroke();c.setLineDash([]);
+    c.beginPath();c.arc(cpx,cpy,7,0,Math.PI*2);c.fillStyle='#fbbf24';c.fill();c.strokeStyle='#92400e';c.lineWidth=2;c.stroke();
+    c.font='bold 13px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='left';
+    c.fillText(`V_BE = ${VBE.toFixed(1)} V`,cpx+12,cpy-8);
+  }
+  c.font='11px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('I_C = J₀(e^(V_BE/V_T) − 1)',w-20,padT+16);
+  c.fillText('ESC veya × ile kapat',w-20,h-8);
+}
+
+// ── BIG BJT Output: IC vs VCE (1400×610) ─────────────────────
+function drawBigBJTOutput(c,w,h){
+  c.font='bold 22px Space Grotesk';c.fillStyle='#e2e8f0';c.textAlign='center';
+  c.fillText('BJT Output Characteristic: I_C vs V_CE',w/2,35);
+  const b=getBJTParams();
+  c.font='12px JetBrains Mono';c.fillStyle='#64748b';
+  c.fillText(`β = ${b.beta}   Mode: ${bjtMode.replace('_',' ')}   V_BE = ${VBE.toFixed(1)}V   V_CB = ${VCB.toFixed(1)}V`,w/2,58);
+  const padX=120,padT=75,padB=65;
+  const axW=w-padX-50,axH=h-padT-padB;
+  const ox=padX,oy=padT+axH;
+  // Axes
+  c.strokeStyle='#334155';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox+axW,oy);c.stroke();
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,padT);c.stroke();
+  c.font='14px JetBrains Mono';c.fillStyle='#94a3b8';c.textAlign='center';
+  c.fillText('V_CE (Volt)',ox+axW/2,h-20);
+  c.save();c.translate(35,padT+axH/2);c.rotate(-Math.PI/2);c.fillText('I_C (relative)',0,0);c.restore();
+  // Ticks
+  c.fillStyle='#64748b';c.font='11px JetBrains Mono';
+  const vceMax=10;
+  for(let v=0;v<=vceMax;v+=1){const px=ox+v/vceMax*axW;c.beginPath();c.moveTo(px,oy);c.lineTo(px,oy+5);c.strokeStyle='#334155';c.stroke();if(v%2===0)c.fillText(v+'',px,oy+18)}
+  // Grid
+  c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=.5;
+  for(let v=0;v<=vceMax;v+=1){const px=ox+v/vceMax*axW;c.beginPath();c.moveTo(px,padT);c.lineTo(px,oy);c.stroke()}
+  for(let i=0;i<=5;i++){const py=oy-i/5*axH;c.beginPath();c.moveTo(ox,py);c.lineTo(ox+axW,py);c.stroke()}
+  // Saturation region shading
+  c.fillStyle='rgba(251,191,36,.06)';c.fillRect(ox,padT,0.3/vceMax*axW,axH);
+  c.font='10px JetBrains Mono';c.fillStyle='rgba(251,191,36,.4)';c.textAlign='center';
+  c.fillText('Sat',ox+0.15/vceMax*axW,padT+axH/2);
+  // 4 IB curves
+  const colors=['#34d399','#38bdf8','#fbbf24','#a78bfa'];
+  const ibLevels=[0.01,0.03,0.06,0.1];
+  const beta=Math.max(1,b.beta);
+  for(let k=0;k<4;k++){
+    const ib=ibLevels[k];
+    const icSat=beta*ib;
+    c.strokeStyle=colors[k];c.lineWidth=2.5;c.beginPath();
+    let f=true;
+    for(let vce=0;vce<=vceMax;vce+=0.05){
+      const ic=icSat*(1-Math.exp(-vce/0.3));
+      const norm=Math.min(1,ic/(beta*0.1));
+      const px=ox+vce/vceMax*axW,py=oy-norm*axH;
+      if(f){c.moveTo(px,py);f=false}else c.lineTo(px,py);
+    }
+    c.stroke();
+    const labelY=oy-Math.min(1,icSat/(beta*0.1))*axH;
+    c.font='11px JetBrains Mono';c.fillStyle=colors[k];c.textAlign='left';
+    c.fillText('I_B='+ib,ox+axW+5,Math.max(padT+12,labelY+4));
+  }
+  // VCE operating point
+  const vce=VBE-VCB;
+  if(vce>0&&vce<=vceMax){
+    const px=ox+vce/vceMax*axW;
+    c.strokeStyle='rgba(251,191,36,.5)';c.lineWidth=1.5;c.setLineDash([6,4]);
+    c.beginPath();c.moveTo(px,padT);c.lineTo(px,oy);c.stroke();c.setLineDash([]);
+    c.font='bold 12px JetBrains Mono';c.fillStyle='#fbbf24';c.textAlign='center';
+    c.fillText('V_CE='+vce.toFixed(1)+'V',px,padT-6);
+  }
+  c.font='11px JetBrains Mono';c.fillStyle='#475569';c.textAlign='right';
+  c.fillText('I_C = β·I_B · (1−e^(−V_CE/V_A))',w-20,padT+16);
+  c.fillText('ESC veya × ile kapat',w-20,h-8);
+}
+
+// ── Boot ─────────────────────────────────────────────────────
+updDoping();updParams();initP();frame();
+</script>
+</body>
+</html>
