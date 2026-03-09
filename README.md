@@ -70,15 +70,6 @@ All formulas are from standard Si device physics textbooks (Neamen, Streetman).
 
 ---
 
-## 📁 File Structure
-
-```
-phase3_junction_sim.html   ← entire simulation (single file, self-contained)
-README.md
-```
-
----
-
 ## 🔗 Related
 
 - **Phase 1 & 2** — Drift/diffusion currents, doping profiles, basic PN junction visualization
